@@ -1,0 +1,24 @@
+.breadcrumb {
+  -fx-background-color: var(--bg-card);
+  -fx-border-color: var(--border-color);
+  -fx-background-radius: 12px;
+  -fx-border-radius: 12px;
+  -fx-padding: 12px;
+  -fx-spacing: 8px;
+}
+
+.breadcrumb button {
+  -fx-background-color: var(--bg-main);
+  -fx-border-color: var(--border-color);
+  -fx-text-fill: var(--text-main);
+  -fx-padding: 6px 12px;
+  -fx-background-radius: 8px;
+  -fx-border-radius: 8px;
+  -fx-cursor: hand;
+  -fx-font-weight: bold;
+}
+
+.breadcrumb button:hover {
+  -fx-border-color: var(--accent);
+  -fx-background-color: var(--border-color);
+}

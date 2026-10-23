@@ -1,0 +1,66 @@
+.theme-cyberpunk {
+  -fx-background-color: #0b0813; /* Força o fundo escuro no container */
+  -fx-bg-main: #0b0813;
+  -fx-bg-card: #140f26;
+  -fx-border-color: #2c1e4d;
+  -fx-text-main: #e0dafa;
+  -fx-text-muted: #8375a3;
+  -fx-accent: #00f2fe;
+  -fx-accent-hover: #00b8d4;
+  -fx-watched-bg: rgba(16, 20, 38, 0.5);
+}
+
+.theme-crunchyroll {
+  -fx-bg-main: #141519;
+  -fx-bg-card: #23252b;
+  -fx-border-color: #32353d;
+  -fx-text-main: #ffffff;
+  -fx-text-muted: #a0a5b5;
+  -fx-accent: #f47521;
+  -fx-accent-hover: #ff8c3a;
+  -fx-watched-bg: rgba(20, 21, 25, 0.6);
+}
+
+.theme-nordic {
+  -fx-bg-main: #1a1c23;
+  -fx-bg-card: #222530;
+  -fx-border-color: #2d3142;
+  -fx-text-main: #e5e9f0;
+  -fx-text-muted: #6b7280;
+  -fx-accent: #88c0d0;
+  -fx-accent-hover: #a3be8c;
+  -fx-watched-bg: rgba(26, 28, 35, 0.5);
+}
+
+.theme-midnight-bloom {
+  -fx-bg-main: #0a0a0f;
+  -fx-bg-card: #15151e;
+  -fx-border-color: #2b2b3d;
+  -fx-text-main: #eaeaea;
+  -fx-text-muted: #70708c;
+  -fx-accent: #d4af37;
+  -fx-accent-hover: #e5c150;
+  -fx-watched-bg: rgba(10, 10, 15, 0.7);
+}
+
+.theme-deep-forest {
+  -fx-bg-main: #0c120c;
+  -fx-bg-card: #161e16;
+  -fx-border-color: #2a382a;
+  -fx-text-main: #d1d9d1;
+  -fx-text-muted: #6b7280;
+  -fx-accent: #4ade80;
+  -fx-accent-hover: #22c55e;
+  -fx-watched-bg: rgba(12, 18, 12, 0.7);
+}
+
+.theme-ruby-crimson {
+  -fx-bg-main: #140b0b;
+  -fx-bg-card: #241414;
+  -fx-border-color: #452424;
+  -fx-text-main: #f5e1e1;
+  -fx-text-muted: #a37575;
+  -fx-accent: #ef4444;
+  -fx-accent-hover: #f87171;
+  -fx-watched-bg: rgba(20, 11, 11, 0.7);
+}

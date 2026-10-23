@@ -1,0 +1,40 @@
+.details-view {
+  -fx-background-color: var(--bg-card);
+  -fx-border-color: var(--border-color);
+  -fx-background-radius: 16px;
+  -fx-border-radius: 16px;
+  -fx-padding: 28px;
+}
+
+.btn-back {
+  -fx-background-color: var(--bg-main);
+  -fx-border-color: var(--border-color);
+  -fx-text-fill: var(--text-main);
+  -fx-padding: 10px 18px;
+  -fx-background-radius: 10px;
+  -fx-border-radius: 10px;
+  -fx-cursor: hand;
+  -fx-font-weight: bold;
+}
+
+.btn-back:hover {
+  -fx-border-color: var(--accent);
+  -fx-background-color: var(--border-color);
+}
+
+#details-title {
+  -fx-font-size: 32px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #ffffff;
+}
+
+.btn-reset {
+  -fx-background-color: rgba(239, 68, 68, 0.1);
+  -fx-border-color: rgba(239, 68, 68, 0.2);
+  -fx-text-fill: #ef4444;
+  -fx-padding: 6px 14px;
+  -fx-background-radius: 8px;
+  -fx-border-radius: 8px;
+  -fx-cursor: hand;
+  -fx-font-weight: bold;
+}
