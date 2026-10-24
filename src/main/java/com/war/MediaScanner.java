@@ -1,19 +1,25 @@
+
 package com.war;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class MediaScanner {
 
     public static class MediaItem {
-        private String title;
-        private String folderPath;
-        private String coverPath;
+        private final String title;
+        private final String folderPath;
+        private final String coverPath;
 
         public MediaItem(String title, String folderPath, String coverPath) {
             this.title = title;
@@ -21,79 +27,150 @@ public class MediaScanner {
             this.coverPath = coverPath;
         }
 
-        public String getTitle() { return title; }
-        public String getFolderPath() { return folderPath; }
-        public String getCoverPath() { return coverPath; }
+        public String getTitle() {
+            return title;
+        }
+
+        public String getFolderPath() {
+            return folderPath;
+        }
+
+        public String getCoverPath() {
+            return coverPath;
+        }
     }
 
-    /**
-     * Cria automaticamente a pasta 'midia' e as subpastas de categorias padrão se não existirem.
-     */
     public static void initializeCategories() {
-        String[] categories = {"Animes", "Séries", "Filmes", "Desenhos", "Mangás", "Livros"};
+        String[] categories = {
+                "Animes",
+                "Desenhos",
+                "Séries",
+                "Filmes",
+                "Mangás",
+                "Livros",
+                "Desejos"
+        };
+
         Path baseDir = Paths.get("midia");
 
         try {
-            if (!Files.exists(baseDir)) {
-                Files.createDirectories(baseDir);
-            }
+            Files.createDirectories(baseDir);
 
             for (String category : categories) {
-                Path categoryDir = baseDir.resolve(category);
-                if (!Files.exists(categoryDir)) {
-                    Files.createDirectories(categoryDir);
+                Files.createDirectories(baseDir.resolve(category));
+            }
+        } catch (IOException e) {
+            System.err.println(
+                    "Erro ao criar as pastas de categorias: "
+                            + e.getMessage()
+            );
+        }
+    }
+
+    private static boolean isImageFile(Path file) {
+        if (!Files.isRegularFile(file) || !Files.isReadable(file)) {
+            return false;
+        }
+
+        try (ImageInputStream input =
+                     ImageIO.createImageInputStream(file.toFile())) {
+
+            if (input == null) {
+                return false;
+            }
+
+            Iterator<ImageReader> readers =
+                    ImageIO.getImageReaders(input);
+
+            while (readers.hasNext()) {
+                ImageReader reader = readers.next();
+
+                try {
+                    reader.setInput(input, true, true);
+
+                    return reader.getWidth(0) > 0
+                            && reader.getHeight(0) > 0;
+
+                } catch (IOException | RuntimeException e) {
+                    // Tenta outro leitor disponível para o arquivo.
+                } finally {
+                    reader.dispose();
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Erro ao criar as pastas de categorias: " + e.getMessage());
+
+        } catch (IOException | RuntimeException e) {
+            System.err.println(
+                    "Não foi possível verificar o arquivo "
+                            + file.getFileName()
+                            + ": "
+                            + e.getMessage()
+            );
         }
+
+        return false;
     }
 
-    /**
-     * Procura por um ficheiro de imagem na pasta da mídia com as extensões suportadas.
-     */
     private static String findCoverImage(Path mediaFolder) {
-        String[] allowedExtensions = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"};
-
         try (Stream<Path> files = Files.list(mediaFolder)) {
-            java.util.Optional<Path> imagePath = files.filter(Files::isRegularFile)
-                    .filter(p -> {
-                        String name = p.getFileName().toString().toLowerCase();
-                        for (String ext : allowedExtensions) {
-                            if (name.endsWith(ext)) return true;
-                        }
-                        return false;
-                    })
-                    .findFirst();
+            return files
+                    .filter(Files::isRegularFile)
+                    .sorted(Comparator.comparing(
+                            path -> path.getFileName()
+                                    .toString()
+                                    .toLowerCase()
+                    ))
+                    .filter(MediaScanner::isImageFile)
+                    .map(path -> path.toAbsolutePath().toString())
+                    .findFirst()
+                    .orElse(null);
 
-            if (imagePath.isPresent()) {
-                return imagePath.get().toUri().toString();
-            }
         } catch (IOException e) {
-            System.err.println("Erro ao procurar capa na pasta: " + e.getMessage());
+            System.err.println(
+                    "Erro ao procurar capa na pasta "
+                            + mediaFolder
+                            + ": "
+                            + e.getMessage()
+            );
+            return null;
         }
-        return null; // Retorna null se nenhuma imagem for encontrada
     }
 
-    /**
-     * Varre um diretório local e retorna todas as subpastas encontradas com respetivas capas.
-     */
-    public static List<MediaItem> scanDirectory(String baseDirectoryPath) {
+    public static List<MediaItem> scanDirectory(
+            String baseDirectoryPath
+    ) {
         List<MediaItem> items = new ArrayList<>();
         Path baseDir = Paths.get(baseDirectoryPath);
 
-        if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
+        if (!Files.isDirectory(baseDir)) {
             return items;
         }
 
         try (Stream<Path> paths = Files.list(baseDir)) {
-            paths.filter(Files::isDirectory).forEach(path -> {
-                String folderName = path.getFileName().toString();
-                String coverUri = findCoverImage(path);
-                items.add(new MediaItem(folderName, path.toAbsolutePath().toString(), coverUri));
-            });
+            paths
+                    .filter(Files::isDirectory)
+                    .sorted(Comparator.comparing(
+                            path -> path.getFileName()
+                                    .toString()
+                                    .toLowerCase()
+                    ))
+                    .forEach(path -> {
+                        String folderName =
+                                path.getFileName().toString();
+
+                        String coverPath = findCoverImage(path);
+
+                        items.add(new MediaItem(
+                                folderName,
+                                path.toAbsolutePath().toString(),
+                                coverPath
+                        ));
+                    });
+
         } catch (IOException e) {
-            System.err.println("Erro ao varrer o diretório de mídias: " + e.getMessage());
+            System.err.println(
+                    "Erro ao varrer o diretório de mídias: "
+                            + e.getMessage()
+            );
         }
 
         return items;

@@ -1,75 +1,179 @@
+
 package com.war;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Pane;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.io.File;
+
 public class CardComponent {
 
-    public static VBox create(String titleText, String progressText, double progressValue, String coverPath) {
-        VBox card = new VBox();
+    private static final double CARD_WIDTH = 220;
+    private static final double CARD_PADDING = 10;
+    private static final double COVER_WIDTH = CARD_WIDTH - CARD_PADDING * 2;
+    private static final double COVER_HEIGHT = 290;
+
+    private CardComponent() {
+    }
+
+    public static VBox create(
+            String title,
+            String progressText,
+            double progress,
+            String coverPath
+    ) {
+        VBox card = new VBox(10);
         card.getStyleClass().add("card");
-        card.setPrefSize(600, 1200);
-        card.setMaxSize(1000, 1200);
+        card.setPrefWidth(CARD_WIDTH);
+        card.setMinWidth(CARD_WIDTH);
+        card.setMaxWidth(CARD_WIDTH);
+        card.setPadding(new Insets(CARD_PADDING));
 
-        // Container superior para a imagem de capa com ajuste automático estilo 'cover'
-        Pane coverContainer = new Pane();
-        coverContainer.setPrefSize(350, 1000);
-        coverContainer.setMaxSize(100, 1000);
+        StackPane coverContainer = new StackPane();
+        coverContainer.getStyleClass().add("cover-container");
+        coverContainer.setPrefSize(COVER_WIDTH, COVER_HEIGHT);
+        coverContainer.setMinSize(COVER_WIDTH, COVER_HEIGHT);
+        coverContainer.setMaxSize(COVER_WIDTH, COVER_HEIGHT);
+        coverContainer.setAlignment(Pos.TOP_RIGHT);
 
-        if (coverPath != null && !coverPath.isEmpty()) {
-            // Aplica a imagem como fundo com 'cover' e centralizada, evitando distorções/esticamentos
-            coverContainer.setStyle(
-                    "-fx-background-image: url('" + coverPath + "'); " +
-                            "-fx-background-position: center; " +
-                            "-fx-background-repeat: no-repeat; " +
-                            "-fx-background-size: cover; " +
-                            "-fx-background-radius: 14px 14px 0 0;"
-            );
-        } else {
-            coverContainer.setStyle("-fx-background-color: #1a1530; -fx-background-radius: 14px 14px 0 0;");
+        ImageView coverImageView = loadCoverImage(coverPath);
+
+        if (coverImageView != null) {
+            coverContainer.getChildren().add(coverImageView);
+            StackPane.setAlignment(coverImageView, Pos.CENTER);
         }
 
-        // Wrapper para permitir sobrepor o botão de marcação por cima da imagem
-        StackPane coverWrapper = new StackPane(coverContainer);
-        coverWrapper.setPrefSize(200, 200);
+        Button organizeButton = new Button("✓");
+        organizeButton.getStyleClass().add("btn-org");
+        organizeButton.setFocusTraversable(false);
+        StackPane.setMargin(organizeButton, new Insets(8));
 
-        // Botão de marcação (✓) no canto superior direito da capa
-        Button btnOrg = new Button("✓");
-        btnOrg.getStyleClass().add("btn-org");
-        StackPane.setAlignment(btnOrg, Pos.TOP_RIGHT);
-        StackPane.setMargin(btnOrg, new Insets(10, 10, 0, 0));
+        coverContainer.getChildren().add(organizeButton);
 
-        coverWrapper.getChildren().add(btnOrg);
+        Label titleLabel = new Label(
+                title != null && !title.isBlank()
+                        ? title
+                        : "Sem título"
+        );
+        titleLabel.getStyleClass().add("title");
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
 
-        // Título da mídia
-        Label title = new Label(titleText);
-        title.getStyleClass().add("title");
-        title.setWrapText(true);
+        Label metaLabel = new Label(
+                progressText != null ? progressText : "0 / 0"
+        );
+        metaLabel.getStyleClass().add("meta");
 
-        // Seção de informações e barra de progresso inferior
-        VBox infoBox = new VBox(4);
-        infoBox.getStyleClass().add("info");
-        infoBox.setPadding(new Insets(6, 10, 10, 10));
+        double validProgress = Double.isFinite(progress)
+                ? Math.max(0.0, Math.min(1.0, progress))
+                : 0.0;
 
-        Label meta = new Label(progressText);
-        meta.getStyleClass().add("meta");
+        ProgressBar progressBar = new ProgressBar(validProgress);
+        progressBar.getStyleClass().add("progress");
+        progressBar.setMaxWidth(Double.MAX_VALUE);
 
-        VBox progressBarBg = new VBox();
-        progressBarBg.getStyleClass().add("progress");
+        VBox infoContainer = new VBox(
+                8,
+                titleLabel,
+                metaLabel,
+                progressBar
+        );
+        infoContainer.getStyleClass().add("card-info");
+        infoContainer.setAlignment(Pos.CENTER_LEFT);
+        infoContainer.setPadding(new Insets(4, 2, 2, 2));
 
-        VBox progressBarFill = new VBox();
-        progressBarFill.getStyleClass().add("bar");
-        progressBarFill.prefWidthProperty().bind(progressBarBg.widthProperty().multiply(progressValue));
+        VBox.setVgrow(infoContainer, Priority.NEVER);
 
-        progressBarBg.getChildren().add(progressBarFill);
-        infoBox.getChildren().addAll(meta, progressBarBg);
+        card.getChildren().addAll(coverContainer, infoContainer);
 
-        card.getChildren().addAll(coverWrapper, title, infoBox);
         return card;
+    }
+
+    private static ImageView loadCoverImage(String coverPath) {
+        if (coverPath == null || coverPath.isBlank()) {
+            return null;
+        }
+
+        File coverFile = new File(coverPath);
+
+        if (!coverFile.isFile()) {
+            System.err.println(
+                    "Capa não encontrada: " + coverFile.getAbsolutePath()
+            );
+            return null;
+        }
+
+        try {
+            Image image = new Image(
+                    coverFile.toURI().toString(),
+                    false
+            );
+
+            if (image.isError()
+                    || image.getWidth() <= 0
+                    || image.getHeight() <= 0) {
+                System.err.println(
+                        "Não foi possível carregar a capa: "
+                                + coverFile.getAbsolutePath()
+                );
+                return null;
+            }
+
+            double imageWidth = image.getWidth();
+            double imageHeight = image.getHeight();
+            double targetRatio = COVER_WIDTH / COVER_HEIGHT;
+            double imageRatio = imageWidth / imageHeight;
+
+            Rectangle2D viewport;
+
+            if (imageRatio > targetRatio) {
+                double cropWidth = imageHeight * targetRatio;
+                double cropX = (imageWidth - cropWidth) / 2.0;
+
+                viewport = new Rectangle2D(
+                        cropX,
+                        0,
+                        cropWidth,
+                        imageHeight
+                );
+            } else {
+                double cropHeight = imageWidth / targetRatio;
+                double cropY = (imageHeight - cropHeight) / 2.0;
+
+                viewport = new Rectangle2D(
+                        0,
+                        cropY,
+                        imageWidth,
+                        cropHeight
+                );
+            }
+
+            ImageView imageView = new ImageView(image);
+            imageView.setViewport(viewport);
+            imageView.setFitWidth(COVER_WIDTH);
+            imageView.setFitHeight(COVER_HEIGHT);
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+
+            return imageView;
+
+        } catch (RuntimeException exception) {
+            System.err.println(
+                    "Erro ao carregar a capa "
+                            + coverFile.getAbsolutePath()
+                            + ": "
+                            + exception.getMessage()
+            );
+            return null;
+        }
     }
 }
