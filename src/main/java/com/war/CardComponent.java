@@ -14,12 +14,14 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.io.File;
+import java.util.function.Consumer;
 
 public class CardComponent {
 
     private static final double CARD_WIDTH = 220;
     private static final double CARD_PADDING = 10;
-    private static final double COVER_WIDTH = CARD_WIDTH - CARD_PADDING * 2;
+    private static final double COVER_WIDTH =
+            CARD_WIDTH - CARD_PADDING * 2;
     private static final double COVER_HEIGHT = 290;
 
     private CardComponent() {
@@ -29,7 +31,9 @@ public class CardComponent {
             String title,
             String progressText,
             double progress,
-            String coverPath
+            String coverPath,
+            boolean favorite,
+            Consumer<Boolean> onFavoriteChanged
     ) {
         VBox card = new VBox(10);
         card.getStyleClass().add("card");
@@ -52,12 +56,36 @@ public class CardComponent {
             StackPane.setAlignment(coverImageView, Pos.CENTER);
         }
 
-        Button organizeButton = new Button("✓");
-        organizeButton.getStyleClass().add("btn-org");
-        organizeButton.setFocusTraversable(false);
-        StackPane.setMargin(organizeButton, new Insets(8));
+        Button favoriteButton = new Button();
+        favoriteButton.getStyleClass().add("btn-org");
+        favoriteButton.setFocusTraversable(false);
+        favoriteButton.setText(favorite ? "★" : "☆");
+        favoriteButton.setAccessibleText(
+                favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+        );
 
-        coverContainer.getChildren().add(organizeButton);
+        StackPane.setMargin(favoriteButton, new Insets(8));
+        coverContainer.getChildren().add(favoriteButton);
+
+        boolean[] favoriteState = {favorite};
+
+        favoriteButton.setOnAction(event -> {
+            favoriteState[0] = !favoriteState[0];
+
+            favoriteButton.setText(
+                    favoriteState[0] ? "★" : "☆"
+            );
+
+            favoriteButton.setAccessibleText(
+                    favoriteState[0]
+                            ? "Remover dos favoritos"
+                            : "Adicionar aos favoritos"
+            );
+
+            if (onFavoriteChanged != null) {
+                onFavoriteChanged.accept(favoriteState[0]);
+            }
+        });
 
         Label titleLabel = new Label(
                 title != null && !title.isBlank()
@@ -140,20 +168,14 @@ public class CardComponent {
                 double cropX = (imageWidth - cropWidth) / 2.0;
 
                 viewport = new Rectangle2D(
-                        cropX,
-                        0,
-                        cropWidth,
-                        imageHeight
+                        cropX, 0, cropWidth, imageHeight
                 );
             } else {
                 double cropHeight = imageWidth / targetRatio;
                 double cropY = (imageHeight - cropHeight) / 2.0;
 
                 viewport = new Rectangle2D(
-                        0,
-                        cropY,
-                        imageWidth,
-                        cropHeight
+                        0, cropY, imageWidth, cropHeight
                 );
             }
 

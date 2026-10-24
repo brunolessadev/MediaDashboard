@@ -14,8 +14,11 @@ import javafx.scene.layout.TilePane;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class Main extends Application {
 
@@ -27,8 +30,13 @@ public class Main extends Application {
     private Stage primaryStage;
 
     private final String[] allCategories = {
-            "Animes", "Desenhos", "Séries", "Filmes",
-            "Mangás", "Livros", "Desejos"
+            "Animes",
+            "Desenhos",
+            "Séries",
+            "Filmes",
+            "Mangás",
+            "Livros",
+            "Desejos"
     };
 
     @Override
@@ -49,7 +57,6 @@ public class Main extends Application {
         cardGrid.setAlignment(Pos.TOP_CENTER);
         cardGrid.setTileAlignment(Pos.TOP_CENTER);
 
-        // Inicializa a barra da janela
         windowBar = new WindowBar(
                 primaryStage,
                 root,
@@ -59,14 +66,21 @@ public class Main extends Application {
         root.setTop(windowBar.getView());
         tabs = windowBar.getTabs();
 
-        // Área de conteúdo
         ScrollPane scrollPane = new ScrollPane(cardGrid);
         scrollPane.setFitToWidth(true);
         root.setCenter(scrollPane);
 
         Scene scene = new Scene(root, 1250, 800);
 
-        StyleA.applyTheme(root, StyleA.Theme.CYBERPUNK);
+        StyleA.Theme savedTheme;
+
+        try {
+            savedTheme = StyleA.Theme.valueOf(MediaConfig.getTheme());
+        } catch (IllegalArgumentException e) {
+            savedTheme = StyleA.Theme.CYBERPUNK;
+        }
+
+        StyleA.applyTheme(root, savedTheme);
 
         primaryStage.setTitle("MediaDashboard - JavaFX");
         primaryStage.setScene(scene);
@@ -80,9 +94,13 @@ public class Main extends Application {
         String previousCategory = selectedCategory;
         List<String> activeCategories = new ArrayList<>();
 
+        Path mediaDirectory = MediaScanner.getMediaDirectory();
+
         for (String category : allCategories) {
             List<MediaScanner.MediaItem> items =
-                    MediaScanner.scanDirectory("midia/" + category);
+                    MediaScanner.scanDirectory(
+                            mediaDirectory.resolve(category).toString()
+                    );
 
             if (!items.isEmpty()) {
                 activeCategories.add(category);
@@ -95,10 +113,11 @@ public class Main extends Application {
             selectedCategory = null;
 
             showEmptyMessage(
-                    "Nenhuma mídia encontrada. Adicione pastas " +
-                            "nas categorias dentro de 'midia/'."
+                    "Nenhuma mídia encontrada. Adicione pastas "
+                            + "nas categorias dentro de 'midia/'."
             );
 
+            StyleA.refresh(root);
             return;
         }
 
@@ -117,16 +136,21 @@ public class Main extends Application {
                 button.getStyleClass().add("active");
             }
 
-            button.setOnAction(e -> {
+            button.setOnAction(event -> {
                 selectedCategory = category;
                 updateActiveTab();
-                loadMediaCards("midia/" + category);
+
+                loadMediaCards(
+                        mediaDirectory.resolve(category).toString()
+                );
             });
 
             tabs.getChildren().add(button);
         }
 
-        loadMediaCards("midia/" + selectedCategory);
+        loadMediaCards(
+                mediaDirectory.resolve(selectedCategory).toString()
+        );
 
         StyleA.refresh(root);
     }
@@ -172,12 +196,39 @@ public class Main extends Application {
             return;
         }
 
+        items.sort(
+                Comparator
+                        .comparing(
+                                (MediaScanner.MediaItem item) ->
+                                        !MediaConfig.isFavorite(
+                                                item.getFavoriteId()
+                                        )
+                        )
+                        .thenComparing(
+                                MediaScanner.MediaItem::getTitle,
+                                String.CASE_INSENSITIVE_ORDER
+                        )
+        );
+
         for (MediaScanner.MediaItem item : items) {
+            boolean favorite = MediaConfig.isFavorite(
+                    item.getFavoriteId()
+            );
+
             var card = CardComponent.create(
                     item.getTitle(),
                     "0 / 0",
                     0.0,
-                    item.getCoverPath()
+                    item.getCoverPath(),
+                    favorite,
+                    newFavoriteState -> {
+                        MediaConfig.setFavorite(
+                                item.getFavoriteId(),
+                                newFavoriteState
+                        );
+
+                        loadMediaCards(directoryPath);
+                    }
             );
 
             cardGrid.getChildren().add(card);

@@ -1,5 +1,5 @@
 
-package com.war;
+        package com.war;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -54,23 +54,36 @@ public class WindowBar {
         bar.getStyleClass().add("header");
         bar.setPadding(new Insets(8, 16, 8, 16));
 
-        // Título
         Label windowTitle = new Label("MediaDashboard");
         windowTitle.getStyleClass().add("header-title");
 
-        // Seletor de tema
         ComboBox<String> themeSelector = new ComboBox<>();
+
         themeSelector.getItems().addAll(
                 "Cyberpunk Neon",
                 "Crunchyroll",
                 "Nordico"
         );
-        themeSelector.setValue("Cyberpunk Neon");
+
+        StyleA.Theme savedTheme =
+                StyleA.Theme.fromName(MediaConfig.getTheme());
+
+        themeSelector.setValue(savedTheme.getDisplayName());
         themeSelector.getStyleClass().add("theme-selector");
 
-        themeSelector.setOnAction(e ->
-                StyleA.applyTheme(root, themeSelector.getValue())
-        );
+        themeSelector.setOnAction(e -> {
+            String selectedTheme = themeSelector.getValue();
+
+            if (selectedTheme == null) {
+                return;
+            }
+
+            StyleA.Theme theme =
+                    StyleA.Theme.fromName(selectedTheme);
+
+            StyleA.applyTheme(root, theme);
+            MediaConfig.setTheme(theme.name());
+        });
 
         HBox leftControls = new HBox(
                 12,
@@ -79,7 +92,6 @@ public class WindowBar {
         );
         leftControls.setAlignment(Pos.CENTER_LEFT);
 
-        // Menu de categorias
         tabs.getStyleClass().add("tabs");
         tabs.setAlignment(Pos.CENTER);
 
@@ -92,14 +104,12 @@ public class WindowBar {
                         "-fx-padding: 0;"
         );
 
-        // Pesquisa
         TextField searchField = new TextField();
         searchField.setPromptText("Pesquisar...");
         searchField.setId("search");
         searchField.setPrefWidth(180);
         searchField.setMinWidth(120);
 
-        // Recarregar mídias
         Button reloadButton = new Button("⟳ Reload");
         reloadButton.setId("reload-button");
         reloadButton.setTooltip(
@@ -107,7 +117,6 @@ public class WindowBar {
         );
         reloadButton.setOnAction(e -> reloadAction.run());
 
-        // Minimizar
         Button minimizeButton = new Button("—");
         minimizeButton.setTooltip(new Tooltip("Minimizar"));
         minimizeButton.getStyleClass().add("window-button");
@@ -115,7 +124,6 @@ public class WindowBar {
                 primaryStage.setIconified(true)
         );
 
-        // Maximizar ou restaurar
         Button maximizeButton = new Button("□");
         maximizeButton.setTooltip(
                 new Tooltip("Maximizar / Restaurar")
@@ -127,7 +135,6 @@ public class WindowBar {
                 )
         );
 
-        // Fechar
         Button closeButton = new Button("✕");
         closeButton.setTooltip(new Tooltip("Fechar"));
         closeButton.getStyleClass().addAll(
@@ -136,7 +143,6 @@ public class WindowBar {
         );
         closeButton.setOnAction(e -> primaryStage.close());
 
-        // Dimensões uniformes dos controles da janela
         Button[] windowButtons = {
                 minimizeButton,
                 maximizeButton,
@@ -166,8 +172,6 @@ public class WindowBar {
         );
         rightControls.setAlignment(Pos.CENTER_RIGHT);
 
-        // Área esquerda e direita com larguras equivalentes.
-        // Isso mantém as categorias centralizadas no cabeçalho.
         Region leftSpacer = new Region();
         Region rightSpacer = new Region();
 
@@ -182,7 +186,6 @@ public class WindowBar {
         rightArea.setAlignment(Pos.CENTER_RIGHT);
         rightArea.setMinWidth(0);
 
-        // Separação das três áreas, sem sobreposição.
         bar.setLeft(leftArea);
         bar.setCenter(tabs);
         bar.setRight(rightArea);
@@ -190,7 +193,6 @@ public class WindowBar {
         BorderPane.setAlignment(tabs, Pos.CENTER);
         BorderPane.setMargin(tabs, new Insets(0, 20, 0, 20));
 
-        // Arrastar a janela sem interferir nos controles.
         bar.setOnMousePressed((MouseEvent e) -> {
             if (e.getTarget() instanceof Button
                     || e.getTarget() instanceof ComboBox<?>
