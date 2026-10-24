@@ -1,5 +1,5 @@
 
-package com.war;
+        package com.war;
 
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -10,7 +10,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -154,13 +153,14 @@ public final class StyleB {
         label.setTextFill(theme.getText());
     }
 
-
     private static void styleButton(Button button, StyleA.Theme theme) {
         Color backgroundColor = theme.getSurface();
         Color textColor = theme.getText();
         double radius = 8;
 
         if (hasClass(button, "tab")) {
+            button.setFont(Font.font("Segoe UI", 16));
+
             boolean active = hasClass(button, "active");
 
             backgroundColor = active ? theme.getAccent() : theme.getSurface();
@@ -190,7 +190,6 @@ public final class StyleB {
             return;
         }
 
-        button.setStyle(null);
         button.setBackground(new Background(
                 new BackgroundFill(
                         backgroundColor,
@@ -211,7 +210,6 @@ public final class StyleB {
         button.setTextFill(textColor);
     }
 
-
     private static void styleTextField(
             TextField textField,
             StyleA.Theme theme
@@ -221,7 +219,6 @@ public final class StyleB {
         textField.setFont(Font.font("Segoe UI", 14));
     }
 
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void styleComboBox(
             ComboBox<?> comboBox,
@@ -229,6 +226,8 @@ public final class StyleB {
     ) {
         setBackground(comboBox, theme.getSurface(), 10);
         setBorder(comboBox, theme.getBorder(), 10);
+
+        comboBox.setStyle("-fx-font-size: 16px;");
 
         ComboBox rawComboBox = comboBox;
 
@@ -239,6 +238,7 @@ public final class StyleB {
 
                 setText(empty || item == null ? null : item.toString());
                 setTextFill(theme.getText());
+                setFont(Font.font("Segoe UI", 16));
 
                 setBackground(new Background(
                         new BackgroundFill(
@@ -257,11 +257,11 @@ public final class StyleB {
 
                 setText(empty || item == null ? null : item.toString());
                 setTextFill(theme.getText());
+                setFont(Font.font("Segoe UI", 16));
                 setBackground(Background.EMPTY);
             }
         });
     }
-
 
     private static void setBackground(
             Region region,

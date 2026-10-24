@@ -7,16 +7,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.TilePane;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -28,12 +21,10 @@ public class Main extends Application {
 
     private TilePane cardGrid;
     private BorderPane root;
-    private HBox tabs;
+    private WindowBar windowBar;
+    private javafx.scene.layout.HBox tabs;
     private String selectedCategory;
     private Stage primaryStage;
-
-    private double dragOffsetX;
-    private double dragOffsetY;
 
     private final String[] allCategories = {
             "Animes", "Desenhos", "Séries", "Filmes",
@@ -58,8 +49,17 @@ public class Main extends Application {
         cardGrid.setAlignment(Pos.TOP_CENTER);
         cardGrid.setTileAlignment(Pos.TOP_CENTER);
 
-        root.setTop(createWindowBar());
+        // Inicializa a barra da janela
+        windowBar = new WindowBar(
+                primaryStage,
+                root,
+                this::reloadMedia
+        );
 
+        root.setTop(windowBar.getView());
+        tabs = windowBar.getTabs();
+
+        // Área de conteúdo
         ScrollPane scrollPane = new ScrollPane(cardGrid);
         scrollPane.setFitToWidth(true);
         root.setCenter(scrollPane);
@@ -74,110 +74,6 @@ public class Main extends Application {
         primaryStage.show();
 
         reloadMedia();
-    }
-
-    private HBox createWindowBar() {
-        HBox bar = new HBox(12);
-        bar.getStyleClass().add("header");
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(8, 12, 8, 16));
-
-        Label windowTitle = new Label("MediaDashboard");
-        windowTitle.getStyleClass().add("header-title");
-
-        ComboBox<String> themeSelector = new ComboBox<>();
-        themeSelector.getItems().addAll(
-                "Cyberpunk Neon",
-                "Crunchyroll",
-                "Nordico"
-        );
-        themeSelector.setValue("Cyberpunk Neon");
-        themeSelector.getStyleClass().add("theme-selector");
-        themeSelector.setOnAction(e ->
-                StyleA.applyTheme(root, themeSelector.getValue())
-        );
-
-        tabs = new HBox(4);
-        tabs.getStyleClass().add("tabs");
-        tabs.setAlignment(Pos.CENTER);
-
-        TextField searchField = new TextField();
-        searchField.setPromptText("Pesquisar...");
-        searchField.setId("search");
-        searchField.setPrefWidth(180);
-
-        Button reloadButton = new Button("⟳ Reload");
-        reloadButton.setId("reload-button");
-        reloadButton.setTooltip(
-                new Tooltip("Recarregar categorias e mídias")
-        );
-        reloadButton.setOnAction(e -> reloadMedia());
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Button minimizeButton = new Button("—");
-        minimizeButton.setTooltip(new Tooltip("Minimizar"));
-        minimizeButton.getStyleClass().add("window-button");
-        minimizeButton.setOnAction(e ->
-                primaryStage.setIconified(true)
-        );
-
-        Button maximizeButton = new Button("□");
-        maximizeButton.setTooltip(
-                new Tooltip("Maximizar / Restaurar")
-        );
-        maximizeButton.getStyleClass().add("window-button");
-        maximizeButton.setOnAction(e ->
-                primaryStage.setMaximized(!primaryStage.isMaximized())
-        );
-
-        Button closeButton = new Button("✕");
-        closeButton.setTooltip(new Tooltip("Fechar"));
-        closeButton.getStyleClass().addAll(
-                "window-button",
-                "window-close"
-        );
-        closeButton.setOnAction(e -> primaryStage.close());
-
-        HBox windowControls = new HBox(
-                6,
-                minimizeButton,
-                maximizeButton,
-                closeButton
-        );
-        windowControls.setAlignment(Pos.CENTER_RIGHT);
-
-        bar.getChildren().addAll(
-                windowTitle,
-                themeSelector,
-                tabs,
-                searchField,
-                reloadButton,
-                spacer,
-                windowControls
-        );
-
-        bar.setOnMousePressed((MouseEvent e) -> {
-            if (e.getTarget() instanceof Button
-                    || e.getTarget() instanceof ComboBox<?>
-                    || e.getTarget() instanceof TextField) {
-                return;
-            }
-
-            dragOffsetX = e.getScreenX() - primaryStage.getX();
-            dragOffsetY = e.getScreenY() - primaryStage.getY();
-        });
-
-        bar.setOnMouseDragged((MouseEvent e) -> {
-            if (!primaryStage.isMaximized()
-                    && e.isPrimaryButtonDown()) {
-                primaryStage.setX(e.getScreenX() - dragOffsetX);
-                primaryStage.setY(e.getScreenY() - dragOffsetY);
-            }
-        });
-
-        return bar;
     }
 
     private void reloadMedia() {
@@ -197,10 +93,12 @@ public class Main extends Application {
 
         if (activeCategories.isEmpty()) {
             selectedCategory = null;
+
             showEmptyMessage(
                     "Nenhuma mídia encontrada. Adicione pastas " +
                             "nas categorias dentro de 'midia/'."
             );
+
             return;
         }
 
@@ -229,6 +127,7 @@ public class Main extends Application {
         }
 
         loadMediaCards("midia/" + selectedCategory);
+
         StyleA.refresh(root);
     }
 
@@ -256,6 +155,7 @@ public class Main extends Application {
         );
 
         cardGrid.getChildren().add(emptyLabel);
+
         StyleA.refresh(root);
     }
 
