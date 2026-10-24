@@ -59,8 +59,22 @@ public final class StyleB {
         }
 
         if (node instanceof ScrollPane scrollPane) {
-            scrollPane.setBackground(Background.EMPTY);
+            setBackground(scrollPane, theme.getBackground(), 0);
             scrollPane.setBorder(Border.EMPTY);
+
+            scrollPane.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+                Node viewport = scrollPane.lookup(".viewport");
+
+                if (viewport instanceof Region viewportRegion) {
+                    setBackground(viewportRegion, theme.getBackground(), 0);
+                }
+            });
+
+            Node viewport = scrollPane.lookup(".viewport");
+
+            if (viewport instanceof Region viewportRegion) {
+                setBackground(viewportRegion, theme.getBackground(), 0);
+            }
         }
 
         if (node instanceof Parent parent) {
