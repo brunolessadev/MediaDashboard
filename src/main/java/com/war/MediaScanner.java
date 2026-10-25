@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class MediaScanner {
@@ -27,23 +28,31 @@ public class MediaScanner {
             "Desejos"
     };
 
+    private static final Set<String> VIDEO_EXTENSIONS = Set.of(
+            "mp4", "m4v", "mkv", "avi", "mov",
+            "wmv", "webm", "mpeg", "mpg", "m2ts"
+    );
+
     public static class MediaItem {
 
         private final String title;
         private final String folderPath;
         private final String coverPath;
         private final String favoriteId;
+        private final boolean directory;
 
         public MediaItem(
                 String title,
                 String folderPath,
                 String coverPath,
-                String favoriteId
+                String favoriteId,
+                boolean directory
         ) {
             this.title = title;
             this.folderPath = folderPath;
             this.coverPath = coverPath;
             this.favoriteId = favoriteId;
+            this.directory = directory;
         }
 
         public String getTitle() {
@@ -60,6 +69,33 @@ public class MediaScanner {
 
         public String getFavoriteId() {
             return favoriteId;
+        }
+
+        public boolean isDirectory() {
+            return directory;
+        }
+    }
+
+    public static class VideoProgress {
+
+        private final int watched;
+        private final int total;
+
+        public VideoProgress(int watched, int total) {
+            this.watched = watched;
+            this.total = total;
+        }
+
+        public int getWatched() {
+            return watched;
+        }
+
+        public int getTotal() {
+            return total;
+        }
+
+        public double getProgress() {
+            return total == 0 ? 0.0 : (double) watched / total;
         }
     }
 
@@ -102,16 +138,10 @@ public class MediaScanner {
         Path baseDir = getMediaDirectory();
 
         try {
-            if (Files.notExists(baseDir)) {
-                Files.createDirectories(baseDir);
-            }
+            Files.createDirectories(baseDir);
 
             for (String category : CATEGORIES) {
-                Path categoryPath = baseDir.resolve(category);
-
-                if (Files.notExists(categoryPath)) {
-                    Files.createDirectories(categoryPath);
-                }
+                Files.createDirectories(baseDir.resolve(category));
             }
 
             MediaConfig.initialize();
@@ -136,18 +166,15 @@ public class MediaScanner {
                 return false;
             }
 
-            Iterator<ImageReader> readers =
-                    ImageIO.getImageReaders(input);
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
 
             while (readers.hasNext()) {
                 ImageReader reader = readers.next();
 
                 try {
                     reader.setInput(input, true, true);
-
                     return reader.getWidth(0) > 0
                             && reader.getHeight(0) > 0;
-
                 } catch (IOException | RuntimeException e) {
                     // Tenta outro leitor disponível.
                 } finally {
@@ -157,9 +184,7 @@ public class MediaScanner {
 
         } catch (IOException | RuntimeException e) {
             System.err.println(
-                    "Não foi possível verificar o arquivo "
-                            + file.getFileName()
-                            + ": "
+                    "Erro ao verificar imagem " + file + ": "
                             + e.getMessage()
             );
         }
@@ -167,8 +192,85 @@ public class MediaScanner {
         return false;
     }
 
-    private static String findCoverImage(Path mediaFolder) {
-        try (Stream<Path> files = Files.list(mediaFolder)) {
+    public static boolean isVideoFile(Path file) {
+        if (!Files.isRegularFile(file) || !Files.isReadable(file)) {
+            return false;
+        }
+
+        String name = file.getFileName().toString();
+        int extensionIndex = name.lastIndexOf('.');
+
+        if (extensionIndex < 0 || extensionIndex == name.length() - 1) {
+            return false;
+        }
+
+        String extension = name.substring(extensionIndex + 1)
+                .toLowerCase(Locale.ROOT);
+
+        return VIDEO_EXTENSIONS.contains(extension);
+    }
+
+    public static String getMediaId(Path itemPath) {
+        Path mediaRoot = getMediaDirectory().toAbsolutePath().normalize();
+        Path normalizedItem = itemPath.toAbsolutePath().normalize();
+
+        if (normalizedItem.startsWith(mediaRoot)) {
+            return mediaRoot.relativize(normalizedItem)
+                    .toString()
+                    .replace('\\', '/');
+        }
+
+        return normalizedItem.toString().replace('\\', '/');
+    }
+
+    public static VideoProgress getVideoProgress(Path path) {
+        if (path == null || !Files.exists(path)) {
+            return new VideoProgress(0, 0);
+        }
+
+        if (Files.isRegularFile(path)) {
+            if (!isVideoFile(path)) {
+                return new VideoProgress(0, 0);
+            }
+
+            boolean watched = MediaConfig.isWatched(getMediaId(path));
+            return new VideoProgress(watched ? 1 : 0, 1);
+        }
+
+        int total = 0;
+        int watched = 0;
+
+        try (Stream<Path> paths = Files.walk(path)) {
+            Iterator<Path> iterator = paths.iterator();
+
+            while (iterator.hasNext()) {
+                Path candidate = iterator.next();
+
+                if (isVideoFile(candidate)) {
+                    total++;
+
+                    if (MediaConfig.isWatched(getMediaId(candidate))) {
+                        watched++;
+                    }
+                }
+            }
+
+        } catch (IOException | RuntimeException e) {
+            System.err.println(
+                    "Erro ao contar vídeos em " + path + ": "
+                            + e.getMessage()
+            );
+        }
+
+        return new VideoProgress(watched, total);
+    }
+
+    private static String findCoverImage(Path folder) {
+        if (folder == null || !Files.isDirectory(folder)) {
+            return null;
+        }
+
+        try (Stream<Path> files = Files.list(folder)) {
             return files
                     .filter(Files::isRegularFile)
                     .sorted(Comparator.comparing(
@@ -183,53 +285,96 @@ public class MediaScanner {
 
         } catch (IOException e) {
             System.err.println(
-                    "Erro ao procurar capa na pasta "
-                            + mediaFolder
-                            + ": "
+                    "Erro ao procurar capa em " + folder + ": "
                             + e.getMessage()
             );
             return null;
         }
     }
 
-    public static List<MediaItem> scanDirectory(
-            String baseDirectoryPath
+    private static String getCategory(Path baseDir) {
+        Path mediaRoot = getMediaDirectory().toAbsolutePath().normalize();
+        Path normalizedBase = baseDir.toAbsolutePath().normalize();
+
+        if (normalizedBase.startsWith(mediaRoot)
+                && normalizedBase.getNameCount() > mediaRoot.getNameCount()) {
+            return normalizedBase.getName(mediaRoot.getNameCount()).toString();
+        }
+
+        Path name = baseDir.getFileName();
+        return name == null ? "" : name.toString();
+    }
+
+    private static String createFavoriteId(
+            Path baseDir,
+            Path itemPath,
+            String category
     ) {
+        Path mediaRoot = getMediaDirectory().toAbsolutePath().normalize();
+        Path normalizedItem = itemPath.toAbsolutePath().normalize();
+
+        if (normalizedItem.startsWith(mediaRoot)) {
+            return mediaRoot.relativize(normalizedItem)
+                    .toString()
+                    .replace('\\', '/');
+        }
+
+        return category + "/" + baseDir.relativize(itemPath)
+                .toString()
+                .replace('\\', '/');
+    }
+
+    public static List<MediaItem> scanDirectory(String baseDirectoryPath) {
         List<MediaItem> items = new ArrayList<>();
-        Path baseDir = Path.of(baseDirectoryPath);
+
+        Path baseDir = Path.of(baseDirectoryPath)
+                .toAbsolutePath()
+                .normalize();
 
         if (!Files.isDirectory(baseDir)) {
             return items;
         }
 
-        String category = baseDir.getFileName().toString();
+        String category = getCategory(baseDir);
 
         try (Stream<Path> paths = Files.list(baseDir)) {
             paths
-                    .filter(Files::isDirectory)
-                    .sorted(Comparator.comparing(
-                            path -> path.getFileName()
-                                    .toString()
-                                    .toLowerCase(Locale.ROOT)
-                    ))
+                    .filter(path ->
+                            Files.isDirectory(path) || isVideoFile(path))
+                    .sorted(Comparator
+                            .comparing(
+                                    (Path path) -> !Files.isDirectory(path)
+                            )
+                            .thenComparing(
+                                    path -> path.getFileName()
+                                            .toString()
+                                            .toLowerCase(Locale.ROOT)
+                            ))
                     .forEach(path -> {
-                        String folderName =
-                                path.getFileName().toString();
+                        boolean directory = Files.isDirectory(path);
 
-                        String coverPath = findCoverImage(path);
-                        String favoriteId = category + "/" + folderName;
+                        String title = path.getFileName().toString();
+                        Path coverFolder = directory ? path : path.getParent();
+                        String coverPath = findCoverImage(coverFolder);
+
+                        String favoriteId = createFavoriteId(
+                                baseDir,
+                                path,
+                                category
+                        );
 
                         items.add(new MediaItem(
-                                folderName,
+                                title,
                                 path.toAbsolutePath().toString(),
                                 coverPath,
-                                favoriteId
+                                favoriteId,
+                                directory
                         ));
                     });
 
         } catch (IOException e) {
             System.err.println(
-                    "Erro ao varrer o diretório de mídias: "
+                    "Erro ao varrer o diretório " + baseDir + ": "
                             + e.getMessage()
             );
         }

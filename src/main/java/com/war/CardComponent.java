@@ -1,9 +1,10 @@
 
-        package com.war;
+package com.war;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -20,8 +21,7 @@ public class CardComponent {
 
     private static final double CARD_WIDTH = 220;
     private static final double CARD_PADDING = 10;
-    private static final double COVER_WIDTH =
-            CARD_WIDTH - CARD_PADDING * 2;
+    private static final double COVER_WIDTH = CARD_WIDTH - CARD_PADDING * 2;
     private static final double COVER_HEIGHT = 290;
 
     private CardComponent() {
@@ -33,6 +33,8 @@ public class CardComponent {
             double progress,
             String coverPath,
             boolean favorite,
+            boolean directory,
+            Runnable onOpen,
             Consumer<Boolean> onFavoriteChanged
     ) {
         VBox card = new VBox(10);
@@ -41,6 +43,7 @@ public class CardComponent {
         card.setMinWidth(CARD_WIDTH);
         card.setMaxWidth(CARD_WIDTH);
         card.setPadding(new Insets(CARD_PADDING));
+        card.setCursor(Cursor.HAND);
 
         StackPane coverContainer = new StackPane();
         coverContainer.getStyleClass().add("cover-container");
@@ -54,26 +57,30 @@ public class CardComponent {
         if (coverImageView != null) {
             coverContainer.getChildren().add(coverImageView);
             StackPane.setAlignment(coverImageView, Pos.CENTER);
+        } else {
+            Label placeholder = new Label(directory ? "📁" : "▶");
+            placeholder.setStyle("-fx-font-size: 42px;");
+            coverContainer.getChildren().add(placeholder);
+            StackPane.setAlignment(placeholder, Pos.CENTER);
         }
 
         Button favoriteButton = new Button("✓");
         favoriteButton.getStyleClass().add("btn-org");
         favoriteButton.setFocusTraversable(false);
-
-        boolean[] favoriteState = {favorite};
-
         favoriteButton.setAccessibleText(
                 favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
         );
 
-        updateFavoriteButton(favoriteButton, favoriteState[0]);
+        boolean[] favoriteState = {favorite};
+        updateFavoriteButton(favoriteButton, favorite);
 
         StackPane.setMargin(favoriteButton, new Insets(8));
         coverContainer.getChildren().add(favoriteButton);
 
         favoriteButton.setOnAction(event -> {
-            favoriteState[0] = !favoriteState[0];
+            event.consume();
 
+            favoriteState[0] = !favoriteState[0];
             updateFavoriteButton(favoriteButton, favoriteState[0]);
 
             favoriteButton.setAccessibleText(
@@ -88,13 +95,14 @@ public class CardComponent {
         });
 
         Label titleLabel = new Label(
-                title != null && !title.isBlank()
-                        ? title
-                        : "Sem título"
+                title != null && !title.isBlank() ? title : "Sem título"
         );
         titleLabel.getStyleClass().add("title");
         titleLabel.setWrapText(true);
         titleLabel.setMaxWidth(Double.MAX_VALUE);
+
+        Label typeLabel = new Label(directory ? "Pasta" : "Vídeo");
+        typeLabel.getStyleClass().add("meta");
 
         Label metaLabel = new Label(
                 progressText != null ? progressText : "0 / 0"
@@ -112,6 +120,7 @@ public class CardComponent {
         VBox infoContainer = new VBox(
                 8,
                 titleLabel,
+                typeLabel,
                 metaLabel,
                 progressBar
         );
@@ -123,9 +132,19 @@ public class CardComponent {
 
         card.getChildren().addAll(coverContainer, infoContainer);
 
+        card.setOnMouseClicked(event -> {
+            if (event.getTarget() == favoriteButton
+                    || favoriteButton.isPressed()) {
+                return;
+            }
+
+            if (onOpen != null) {
+                onOpen.run();
+            }
+        });
+
         return card;
     }
-
 
     private static void updateFavoriteButton(
             Button button,
@@ -135,11 +154,11 @@ public class CardComponent {
 
         if (favorite) {
             button.setStyle(
-                    "-fx-background-color: #22c55e; " +
-                            "-fx-text-fill: white; " +
-                            "-fx-border-color: #16a34a; " +
-                            "-fx-border-radius: 5px; " +
-                            "-fx-background-radius: 5px;"
+                    "-fx-background-color: #22c55e; "
+                            + "-fx-text-fill: white; "
+                            + "-fx-border-color: #16a34a; "
+                            + "-fx-border-radius: 5px; "
+                            + "-fx-background-radius: 5px;"
             );
         } else {
             button.setStyle("");
@@ -154,9 +173,6 @@ public class CardComponent {
         File coverFile = new File(coverPath);
 
         if (!coverFile.isFile()) {
-            System.err.println(
-                    "Capa não encontrada: " + coverFile.getAbsolutePath()
-            );
             return null;
         }
 
@@ -169,10 +185,6 @@ public class CardComponent {
             if (image.isError()
                     || image.getWidth() <= 0
                     || image.getHeight() <= 0) {
-                System.err.println(
-                        "Não foi possível carregar a capa: "
-                                + coverFile.getAbsolutePath()
-                );
                 return null;
             }
 
@@ -212,8 +224,7 @@ public class CardComponent {
             System.err.println(
                     "Erro ao carregar a capa "
                             + coverFile.getAbsolutePath()
-                            + ": "
-                            + exception.getMessage()
+                            + ": " + exception.getMessage()
             );
             return null;
         }

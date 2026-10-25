@@ -1,5 +1,5 @@
 
-        package com.war;
+        package com.war.style;
 
 import javafx.geometry.Insets;
 import javafx.scene.Node;

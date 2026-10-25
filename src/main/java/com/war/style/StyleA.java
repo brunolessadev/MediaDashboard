@@ -1,5 +1,5 @@
 
-package com.war;
+package com.war.style;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;

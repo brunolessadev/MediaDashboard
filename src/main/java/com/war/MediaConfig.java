@@ -1,5 +1,5 @@
 
-        package com.war;
+package com.war;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,6 +21,7 @@ public final class MediaConfig {
             new GsonBuilder().setPrettyPrinting().create();
 
     private static final Set<String> favorites = new LinkedHashSet<>();
+    private static final Set<String> watched = new LinkedHashSet<>();
 
     private static boolean initialized = false;
 
@@ -28,8 +29,7 @@ public final class MediaConfig {
     }
 
     private static Path getConfigPath() {
-        return MediaScanner.getMediaDirectory()
-                .resolve("config.json");
+        return MediaScanner.getMediaDirectory().resolve("config.json");
     }
 
     public static synchronized void initialize() {
@@ -45,14 +45,10 @@ public final class MediaConfig {
             if (Files.notExists(configPath)) {
                 JsonObject initialConfig = new JsonObject();
                 initialConfig.add("favoritos", new JsonArray());
+                initialConfig.add("assistidos", new JsonArray());
                 initialConfig.addProperty("tema", "CYBERPUNK");
 
-                Files.writeString(
-                        configPath,
-                        GSON.toJson(initialConfig),
-                        StandardOpenOption.CREATE_NEW,
-                        StandardOpenOption.WRITE
-                );
+                writeConfig(initialConfig);
             }
 
             String content = Files.readString(configPath);
@@ -67,24 +63,21 @@ public final class MediaConfig {
             JsonObject config = parsed.getAsJsonObject();
 
             favorites.clear();
+            watched.clear();
 
-            if (config.has("favoritos")
-                    && config.get("favoritos").isJsonArray()) {
-
-                JsonArray array = config.getAsJsonArray("favoritos");
-
-                for (JsonElement element : array) {
-                    if (element.isJsonPrimitive()
-                            && element.getAsJsonPrimitive().isString()) {
-                        favorites.add(element.getAsString());
-                    }
-                }
-            }
+            loadStringSet(config, "favoritos", favorites);
+            loadStringSet(config, "assistidos", watched);
 
             if (!config.has("tema")
                     || !config.get("tema").isJsonPrimitive()
                     || !config.get("tema").getAsJsonPrimitive().isString()) {
                 config.addProperty("tema", "CYBERPUNK");
+                writeConfig(config);
+            }
+
+            if (!config.has("assistidos")
+                    || !config.get("assistidos").isJsonArray()) {
+                config.add("assistidos", new JsonArray());
                 writeConfig(config);
             }
 
@@ -97,9 +90,27 @@ public final class MediaConfig {
         }
     }
 
+    private static void loadStringSet(
+            JsonObject config,
+            String property,
+            Set<String> destination
+    ) {
+        if (!config.has(property)
+                || !config.get(property).isJsonArray()) {
+            return;
+        }
+
+        for (JsonElement element : config.getAsJsonArray(property)) {
+            if (element.isJsonPrimitive()
+                    && element.getAsJsonPrimitive().isString()) {
+                destination.add(element.getAsString());
+            }
+        }
+    }
+
     public static synchronized boolean isFavorite(String id) {
         initialize();
-        return favorites.contains(id);
+        return id != null && favorites.contains(id);
     }
 
     public static synchronized void setFavorite(
@@ -121,24 +132,54 @@ public final class MediaConfig {
         save();
     }
 
+    public static synchronized boolean isWatched(String id) {
+        initialize();
+        return id != null && watched.contains(id);
+    }
+
+    public static synchronized void setWatched(
+            String id,
+            boolean isWatched
+    ) {
+        initialize();
+
+        if (id == null || id.isBlank()) {
+            return;
+        }
+
+        if (isWatched) {
+            watched.add(id);
+        } else {
+            watched.remove(id);
+        }
+
+        save();
+    }
+
     private static synchronized void save() {
         initialize();
 
         try {
             JsonObject config = readConfig();
-            JsonArray array = new JsonArray();
 
+            JsonArray favoritesArray = new JsonArray();
             favorites.stream()
                     .sorted(String.CASE_INSENSITIVE_ORDER)
-                    .forEach(array::add);
+                    .forEach(favoritesArray::add);
 
-            config.add("favoritos", array);
+            JsonArray watchedArray = new JsonArray();
+            watched.stream()
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .forEach(watchedArray::add);
+
+            config.add("favoritos", favoritesArray);
+            config.add("assistidos", watchedArray);
 
             writeConfig(config);
 
         } catch (IOException | RuntimeException e) {
             System.err.println(
-                    "Erro ao salvar os favoritos: " + e.getMessage()
+                    "Erro ao salvar a configuração: " + e.getMessage()
             );
         }
     }
@@ -189,6 +230,7 @@ public final class MediaConfig {
         if (Files.notExists(configPath)) {
             JsonObject config = new JsonObject();
             config.add("favoritos", new JsonArray());
+            config.add("assistidos", new JsonArray());
             config.addProperty("tema", "CYBERPUNK");
             return config;
         }
