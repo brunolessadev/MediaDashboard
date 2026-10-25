@@ -81,8 +81,9 @@ public class WindowBar {
             StyleA.Theme theme =
                     StyleA.Theme.fromName(selectedTheme);
 
-            StyleA.applyTheme(root, theme);
             MediaConfig.setTheme(theme.name());
+            StyleA.applyTheme(root, theme);
+            reloadAction.run();
         });
 
         HBox leftControls = new HBox(

@@ -1,5 +1,5 @@
 
-package com.war;
+        package com.war;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -56,25 +56,25 @@ public class CardComponent {
             StackPane.setAlignment(coverImageView, Pos.CENTER);
         }
 
-        Button favoriteButton = new Button();
+        Button favoriteButton = new Button("✓");
         favoriteButton.getStyleClass().add("btn-org");
         favoriteButton.setFocusTraversable(false);
-        favoriteButton.setText(favorite ? "★" : "☆");
+
+        boolean[] favoriteState = {favorite};
+
         favoriteButton.setAccessibleText(
                 favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
         );
 
+        updateFavoriteButton(favoriteButton, favoriteState[0]);
+
         StackPane.setMargin(favoriteButton, new Insets(8));
         coverContainer.getChildren().add(favoriteButton);
-
-        boolean[] favoriteState = {favorite};
 
         favoriteButton.setOnAction(event -> {
             favoriteState[0] = !favoriteState[0];
 
-            favoriteButton.setText(
-                    favoriteState[0] ? "★" : "☆"
-            );
+            updateFavoriteButton(favoriteButton, favoriteState[0]);
 
             favoriteButton.setAccessibleText(
                     favoriteState[0]
@@ -124,6 +124,26 @@ public class CardComponent {
         card.getChildren().addAll(coverContainer, infoContainer);
 
         return card;
+    }
+
+
+    private static void updateFavoriteButton(
+            Button button,
+            boolean favorite
+    ) {
+        button.setText("✓");
+
+        if (favorite) {
+            button.setStyle(
+                    "-fx-background-color: #22c55e; " +
+                            "-fx-text-fill: white; " +
+                            "-fx-border-color: #16a34a; " +
+                            "-fx-border-radius: 5px; " +
+                            "-fx-background-radius: 5px;"
+            );
+        } else {
+            button.setStyle("");
+        }
     }
 
     private static ImageView loadCoverImage(String coverPath) {
