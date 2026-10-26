@@ -123,7 +123,22 @@ public class MediaScanner {
             ).toAbsolutePath().normalize();
 
             if (Files.isRegularFile(location)) {
-                return location.getParent();
+                Path parent = location.getParent();
+
+                if (parent != null
+                        && parent.getFileName() != null
+                        && parent.getFileName().toString()
+                        .equalsIgnoreCase("app")) {
+                    Path appImageDirectory = parent.getParent();
+
+                    if (appImageDirectory != null) {
+                        return appImageDirectory;
+                    }
+                }
+
+                return parent != null
+                        ? parent
+                        : Path.of("").toAbsolutePath().normalize();
             }
 
             Path folderName = location.getFileName();
@@ -132,14 +147,19 @@ public class MediaScanner {
                     && folderName.toString().equalsIgnoreCase("classes")
                     && location.getParent() != null
                     && location.getParent().getFileName() != null
-                    && location.getParent().getFileName()
-                    .toString().equalsIgnoreCase("target")) {
+                    && location.getParent().getFileName().toString()
+                    .equalsIgnoreCase("target")) {
                 return location.getParent().getParent();
             }
 
             return location;
 
         } catch (URISyntaxException | NullPointerException exception) {
+            System.err.println(
+                    "Não foi possível identificar a pasta do aplicativo: "
+                            + exception.getMessage()
+            );
+
             return Path.of("").toAbsolutePath().normalize();
         }
     }

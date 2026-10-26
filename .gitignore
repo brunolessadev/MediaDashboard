@@ -37,3 +37,7 @@
 
 # Ignora os arquivos dentro das subpastas, inclusive imagens e vídeos
 /midia/**/*.*
+
+### Arquivos gerados pelo Maven ###
+/target/
+/dist/

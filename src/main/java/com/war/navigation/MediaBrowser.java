@@ -1,5 +1,5 @@
 
-package com.war.navigation;
+        package com.war.navigation;
 
 import com.war.CardComponent;
 import com.war.MediaConfig;
@@ -128,14 +128,9 @@ public class MediaBrowser {
         photoGrid.setAlignment(Pos.TOP_LEFT);
         photoGrid.setTileAlignment(Pos.TOP_LEFT);
 
-        breadcrumbLabel.getStyleClass().add("header-title");
         backButton.setOnAction(event -> goBack());
 
-        HBox navigationBar = new HBox(
-                12,
-                backButton,
-                breadcrumbLabel
-        );
+        HBox navigationBar = new HBox(backButton);
         navigationBar.setAlignment(Pos.CENTER_LEFT);
         navigationBar.setPadding(new Insets(12, 20, 0, 20));
 
@@ -998,29 +993,9 @@ public class MediaBrowser {
             canGoBack |= !currentDirectory.equals(categoryRoot);
         }
 
-        backButton.setDisable(!canGoBack);
+        backButton.setVisible(canGoBack);
+        backButton.setManaged(canGoBack);
 
-        if (currentDirectory == null) {
-            breadcrumbLabel.setText("Biblioteca");
-            return;
-        }
-
-        Path mediaRoot = MediaScanner.getMediaDirectory()
-                .toAbsolutePath()
-                .normalize();
-
-        if (currentDirectory.startsWith(mediaRoot)) {
-            breadcrumbLabel.setText(
-                    "Biblioteca / "
-                            + mediaRoot.relativize(currentDirectory)
-                            .toString()
-                            .replace('\\', '/')
-                            .replace("/", " / ")
-            );
-        } else {
-            breadcrumbLabel.setText(
-                    currentDirectory.getFileName().toString()
-            );
-        }
+        breadcrumbLabel.setText("");
     }
 }
