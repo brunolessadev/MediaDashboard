@@ -1,45 +1,20 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-.kotlin
+### Mídia e Arquivos Grandes ###
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
-*.iws
-*.iml
-*.ipr
+# Mantém a pasta midia e suas subpastas no Git
+!midia/
+!midia/**/
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Ignora os arquivos dentro das pastas de mídia
+midia/**/*
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Mantém arquivos .gitkeep para preservar pastas vazias
+!midia/**/.gitkeep
 
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
 
 ### Mídia e Arquivos Grandes ###
-midia/
+
+# Ignora todo o conteúdo da pasta midia, inclusive imagens e subpastas
+/midia/
 *.mkv
 *.mp4
 *.avi

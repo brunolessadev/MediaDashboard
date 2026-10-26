@@ -1,7 +1,12 @@
 {
   "favoritos": [
-    "Animes/Naruto"
+    "Animes/Naruto",
+    "Animes/Naruto/Naruto Clássico - 1-25"
   ],
-  "tema": "CRUNCHYROLL",
-  "assistidos": []
+  "tema": "CYBERPUNK",
+  "assistidos": [
+    "Animes/Naruto/Naruto Clássico - 1-25/002 Meu Nome é Konohamaru!.mkv",
+    "Séries/Temp 1 Meu chevett/VID_20250313_114705362.mp4",
+    "Vídeos/VID_20250923_082640039~2.mp4"
+  ]
 }

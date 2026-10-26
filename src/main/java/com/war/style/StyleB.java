@@ -1,5 +1,5 @@
 
-        package com.war.style;
+package com.war.style;
 
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -61,18 +61,28 @@ public final class StyleB {
             setBackground(scrollPane, theme.getBackground(), 0);
             scrollPane.setBorder(Border.EMPTY);
 
-            scrollPane.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-                Node viewport = scrollPane.lookup(".viewport");
+            scrollPane.skinProperty().addListener(
+                    (obs, oldSkin, newSkin) -> {
+                        Node viewport = scrollPane.lookup(".viewport");
 
-                if (viewport instanceof Region viewportRegion) {
-                    setBackground(viewportRegion, theme.getBackground(), 0);
-                }
-            });
+                        if (viewport instanceof Region viewportRegion) {
+                            setBackground(
+                                    viewportRegion,
+                                    theme.getBackground(),
+                                    0
+                            );
+                        }
+                    }
+            );
 
             Node viewport = scrollPane.lookup(".viewport");
 
             if (viewport instanceof Region viewportRegion) {
-                setBackground(viewportRegion, theme.getBackground(), 0);
+                setBackground(
+                        viewportRegion,
+                        theme.getBackground(),
+                        0
+                );
             }
         }
 
@@ -83,7 +93,10 @@ public final class StyleB {
         }
     }
 
-    private static void styleRegion(Region region, StyleA.Theme theme) {
+    private static void styleRegion(
+            Region region,
+            StyleA.Theme theme
+    ) {
         if (region.getParent() == null) {
             setBackground(region, theme.getBackground(), 0);
         }
@@ -116,7 +129,10 @@ public final class StyleB {
         }
     }
 
-    private static void styleLabel(Label label, StyleA.Theme theme) {
+    private static void styleLabel(
+            Label label,
+            StyleA.Theme theme
+    ) {
         if (hasClass(label, "header-title")) {
             label.setTextFill(theme.getText());
             label.setFont(Font.font(
@@ -153,30 +169,60 @@ public final class StyleB {
         label.setTextFill(theme.getText());
     }
 
-    private static void styleButton(Button button, StyleA.Theme theme) {
+    private static void styleButton(
+            Button button,
+            StyleA.Theme theme
+    ) {
         Color backgroundColor = theme.getSurface();
         Color textColor = theme.getText();
+        Color borderColor = theme.getBorder();
         double radius = 8;
+        boolean filledButton = false;
 
         if (hasClass(button, "tab")) {
             button.setFont(Font.font("Segoe UI", 16));
 
             boolean active = hasClass(button, "active");
 
-            backgroundColor = active ? theme.getAccent() : theme.getSurface();
+            backgroundColor = active
+                    ? theme.getAccent()
+                    : theme.getSurface();
+
             textColor = active
                     ? contrastColor(theme.getAccent())
                     : theme.getSecondaryText();
-            radius = 8;
+
+            borderColor = theme.getBorder();
+            filledButton = active;
 
         } else if ("reload-button".equals(button.getId())) {
             backgroundColor = theme.getSurface();
             textColor = theme.getAccent();
+            borderColor = theme.getAccent();
             radius = 10;
 
         } else if (hasClass(button, "btn-org")) {
             backgroundColor = theme.getAccent();
             textColor = contrastColor(theme.getAccent());
+            borderColor = theme.getAccent();
+            filledButton = true;
+
+        } else if (hasClass(button, "episode-mark-watched")) {
+            backgroundColor = theme.getAccent();
+            textColor = contrastColor(theme.getAccent());
+            borderColor = theme.getAccent();
+            filledButton = true;
+
+        } else if (hasClass(button, "episode-open")) {
+            backgroundColor = theme.getAccent();
+            textColor = contrastColor(theme.getAccent());
+            borderColor = theme.getAccent();
+            filledButton = true;
+
+        } else if (hasClass(button, "episode-unmark-watched")) {
+            backgroundColor = theme.getSurface();
+            textColor = theme.getSecondaryText();
+            borderColor = theme.getAccent();
 
         } else if (hasClass(button, "episode")
                 || hasClass(button, "episode-button")) {
@@ -190,6 +236,51 @@ public final class StyleB {
             return;
         }
 
+        final Color normalBackground = backgroundColor;
+        final Color normalText = textColor;
+        final Color normalBorder = borderColor;
+        final double buttonRadius = radius;
+
+        final Color hoverBackground = filledButton
+                ? theme.getAccent().interpolate(Color.WHITE, 0.14)
+                : normalBackground.interpolate(theme.getAccent(), 0.18);
+
+        applyButtonAppearance(
+                button,
+                normalBackground,
+                normalText,
+                normalBorder,
+                buttonRadius
+        );
+
+        button.setOnMouseEntered(event ->
+                applyButtonAppearance(
+                        button,
+                        hoverBackground,
+                        normalText,
+                        theme.getAccent(),
+                        buttonRadius
+                )
+        );
+
+        button.setOnMouseExited(event ->
+                applyButtonAppearance(
+                        button,
+                        normalBackground,
+                        normalText,
+                        normalBorder,
+                        buttonRadius
+                )
+        );
+    }
+
+    private static void applyButtonAppearance(
+            Button button,
+            Color backgroundColor,
+            Color textColor,
+            Color borderColor,
+            double radius
+    ) {
         button.setBackground(new Background(
                 new BackgroundFill(
                         backgroundColor,
@@ -200,7 +291,7 @@ public final class StyleB {
 
         button.setBorder(new Border(
                 new BorderStroke(
-                        theme.getBorder(),
+                        borderColor,
                         BorderStrokeStyle.SOLID,
                         new CornerRadii(radius),
                         new BorderWidths(1)
@@ -303,7 +394,10 @@ public final class StyleB {
                 : Color.WHITE;
     }
 
-    private static boolean hasClass(Node node, String className) {
+    private static boolean hasClass(
+            Node node,
+            String className
+    ) {
         return node.getStyleClass().contains(className);
     }
 }

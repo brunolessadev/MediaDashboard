@@ -1,3 +1,4 @@
+
 package com.war.player;
 
 import javafx.geometry.Insets;
@@ -9,7 +10,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
-import javafx.scene.media.MediaException;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.util.Duration;
@@ -31,9 +31,10 @@ public class VideoPlayer {
         stop();
 
         Media media = new Media(videoPath.toUri().toString());
-        mediaPlayer = new MediaPlayer(media);
-        mediaView = new MediaView(mediaPlayer);
+        MediaPlayer player = new MediaPlayer(media);
+        mediaPlayer = player;
 
+        mediaView = new MediaView(player);
         mediaView.setPreserveRatio(true);
         mediaView.setFitWidth(1100);
         mediaView.setFitHeight(620);
@@ -64,57 +65,62 @@ public class VideoPlayer {
                 timeline,
                 timeLabel
         );
-
         controls.setAlignment(Pos.CENTER);
         HBox.setHgrow(timeline, Priority.ALWAYS);
 
         VBox controlsBox = new VBox(10, title, controls);
         controlsBox.setPadding(new Insets(12));
 
-        playerView = new VBox(
-                10,
-                backButton,
-                mediaView,
-                controlsBox
-        );
-
+        playerView = new VBox(10, backButton, mediaView, controlsBox);
         playerView.setPadding(new Insets(16));
         playerView.setAlignment(Pos.CENTER);
-
         VBox.setVgrow(mediaView, Priority.ALWAYS);
 
         playPauseButton.setOnAction(event -> {
-            if (mediaPlayer == null) {
+            if (mediaPlayer != player) {
                 return;
             }
 
-            if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-                mediaPlayer.pause();
+            if (player.getStatus() == MediaPlayer.Status.PLAYING) {
+                player.pause();
                 playPauseButton.setText("▶ Continuar");
             } else {
-                mediaPlayer.play();
+                player.play();
                 playPauseButton.setText("⏸ Pausar");
             }
         });
 
         stopButton.setOnAction(event -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.stop();
+            if (mediaPlayer == player) {
+                player.stop();
+                playPauseButton.setText("▶ Continuar");
             }
         });
 
         timeline.setOnMouseReleased(event -> {
-            if (mediaPlayer != null
-                    && mediaPlayer.getTotalDuration() != null
-                    && !mediaPlayer.getTotalDuration().isUnknown()) {
-                mediaPlayer.seek(Duration.seconds(timeline.getValue()));
+            if (mediaPlayer != player) {
+                return;
+            }
+
+            Duration duration = player.getTotalDuration();
+
+            if (duration != null
+                    && !duration.isUnknown()
+                    && !duration.isIndefinite()) {
+                player.seek(Duration.seconds(timeline.getValue()));
             }
         });
 
-        mediaPlayer.setOnReady(() -> {
-            Duration duration = mediaPlayer.getTotalDuration();
+        player.setOnReady(() -> {
+            if (mediaPlayer != player) {
+                return;
+            }
 
-            if (duration != null && !duration.isUnknown()) {
+            Duration duration = player.getTotalDuration();
+
+            if (duration != null
+                    && !duration.isUnknown()
+                    && !duration.isIndefinite()) {
                 timeline.setMax(Math.max(1, duration.toSeconds()));
                 timeLabel.setText(
                         formatTime(Duration.ZERO)
@@ -123,22 +129,29 @@ public class VideoPlayer {
                 );
             }
 
-            mediaPlayer.play();
+            player.play();
         });
 
-        mediaPlayer.currentTimeProperty().addListener(
+        player.currentTimeProperty().addListener(
                 (observable, oldTime, newTime) -> {
+                    if (mediaPlayer != player) {
+                        return;
+                    }
+
                     if (!timeline.isValueChanging()
                             && newTime != null
-                            && !newTime.isUnknown()) {
+                            && !newTime.isUnknown()
+                            && !newTime.isIndefinite()) {
                         timeline.setValue(newTime.toSeconds());
                     }
 
-                    Duration total = mediaPlayer.getTotalDuration();
+                    Duration total = player.getTotalDuration();
 
                     if (newTime != null
+                            && !newTime.isUnknown()
                             && total != null
-                            && !total.isUnknown()) {
+                            && !total.isUnknown()
+                            && !total.isIndefinite()) {
                         timeLabel.setText(
                                 formatTime(newTime)
                                         + " / "
@@ -148,16 +161,24 @@ public class VideoPlayer {
                 }
         );
 
-        mediaPlayer.setOnEndOfMedia(() -> {
-            mediaPlayer.stop();
+        player.setOnEndOfMedia(() -> {
+            if (mediaPlayer != player) {
+                return;
+            }
+
+            player.stop();
 
             if (onFinished != null) {
                 onFinished.accept(videoPath);
             }
         });
 
-        mediaPlayer.setOnError(() -> {
-            Throwable error = mediaPlayer.getError();
+        player.setOnError(() -> {
+            if (mediaPlayer != player) {
+                return;
+            }
+
+            Throwable error = player.getError();
 
             System.err.println(
                     "Erro na reprodução do vídeo "
@@ -181,10 +202,12 @@ public class VideoPlayer {
     }
 
     public void stop() {
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-            mediaPlayer = null;
+        MediaPlayer player = mediaPlayer;
+        mediaPlayer = null;
+
+        if (player != null) {
+            player.stop();
+            player.dispose();
         }
 
         mediaView = null;

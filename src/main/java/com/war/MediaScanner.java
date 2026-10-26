@@ -8,12 +8,16 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class MediaScanner {
@@ -25,12 +29,22 @@ public class MediaScanner {
             "Filmes",
             "Mangás",
             "Livros",
+            "Fotos",
+            "Vídeos",
             "Desejos"
     };
 
     private static final Set<String> VIDEO_EXTENSIONS = Set.of(
             "mp4", "m4v", "mkv", "avi", "mov",
             "wmv", "webm", "mpeg", "mpg", "m2ts"
+    );
+
+    private static final Set<String> BOOK_EXTENSIONS = Set.of(
+            "epub", "pdf", "mobi", "azw", "azw3"
+    );
+
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(
+            "jpg", "jpeg", "png", "gif", "bmp", "webp"
     );
 
     public static class MediaItem {
@@ -125,7 +139,7 @@ public class MediaScanner {
 
             return location;
 
-        } catch (URISyntaxException | NullPointerException e) {
+        } catch (URISyntaxException | NullPointerException exception) {
             return Path.of("").toAbsolutePath().normalize();
         }
     }
@@ -146,16 +160,18 @@ public class MediaScanner {
 
             MediaConfig.initialize();
 
-        } catch (IOException e) {
+        } catch (IOException exception) {
             System.err.println(
                     "Erro ao inicializar as pastas de mídia: "
-                            + e.getMessage()
+                            + exception.getMessage()
             );
         }
     }
 
     private static boolean isImageFile(Path file) {
-        if (!Files.isRegularFile(file) || !Files.isReadable(file)) {
+        if (file == null
+                || !Files.isRegularFile(file)
+                || !Files.isReadable(file)) {
             return false;
         }
 
@@ -175,39 +191,74 @@ public class MediaScanner {
                     reader.setInput(input, true, true);
                     return reader.getWidth(0) > 0
                             && reader.getHeight(0) > 0;
-                } catch (IOException | RuntimeException e) {
+                } catch (IOException | RuntimeException exception) {
                     // Tenta outro leitor disponível.
                 } finally {
                     reader.dispose();
                 }
             }
 
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException exception) {
             System.err.println(
                     "Erro ao verificar imagem " + file + ": "
-                            + e.getMessage()
+                            + exception.getMessage()
             );
         }
 
         return false;
     }
 
-    public static boolean isVideoFile(Path file) {
-        if (!Files.isRegularFile(file) || !Files.isReadable(file)) {
-            return false;
+    private static String getExtension(Path file) {
+        if (file == null || file.getFileName() == null) {
+            return "";
         }
 
         String name = file.getFileName().toString();
         int extensionIndex = name.lastIndexOf('.');
 
         if (extensionIndex < 0 || extensionIndex == name.length() - 1) {
-            return false;
+            return "";
         }
 
-        String extension = name.substring(extensionIndex + 1)
+        return name.substring(extensionIndex + 1)
                 .toLowerCase(Locale.ROOT);
+    }
 
-        return VIDEO_EXTENSIONS.contains(extension);
+    public static boolean isVideoFile(Path file) {
+        return file != null
+                && Files.isRegularFile(file)
+                && Files.isReadable(file)
+                && VIDEO_EXTENSIONS.contains(getExtension(file));
+    }
+
+    public static boolean isBookFile(Path file) {
+        return file != null
+                && Files.isRegularFile(file)
+                && Files.isReadable(file)
+                && BOOK_EXTENSIONS.contains(getExtension(file));
+    }
+
+    public static boolean isPhotoFile(Path file) {
+        return file != null
+                && Files.isRegularFile(file)
+                && Files.isReadable(file)
+                && IMAGE_EXTENSIONS.contains(getExtension(file));
+    }
+
+    private static boolean isSupportedFile(Path file, String category) {
+        if ("Livros".equalsIgnoreCase(category)) {
+            return isBookFile(file);
+        }
+
+        if ("Fotos".equalsIgnoreCase(category)) {
+            return isPhotoFile(file);
+        }
+
+        if ("Vídeos".equalsIgnoreCase(category)) {
+            return isVideoFile(file);
+        }
+
+        return isVideoFile(file);
     }
 
     public static String getMediaId(Path itemPath) {
@@ -255,14 +306,172 @@ public class MediaScanner {
                 }
             }
 
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException exception) {
             System.err.println(
                     "Erro ao contar vídeos em " + path + ": "
-                            + e.getMessage()
+                            + exception.getMessage()
             );
         }
 
         return new VideoProgress(watched, total);
+    }
+
+    /**
+     * Retorna o caminho da miniatura em cache.
+     * O caminho muda quando o tamanho ou a data de modificação do vídeo muda.
+     */
+    public static Path getVideoThumbnailPath(Path video) {
+        if (video == null || !Files.isRegularFile(video)) {
+            return null;
+        }
+
+        try {
+            Path cacheDirectory = getApplicationDirectory()
+                    .resolve("cache")
+                    .resolve("video-thumbnails");
+
+            Files.createDirectories(cacheDirectory);
+
+            String identity = video.toAbsolutePath().normalize()
+                    + "|" + Files.size(video)
+                    + "|" + Files.getLastModifiedTime(video).toMillis();
+
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(
+                            identity.getBytes(
+                                    java.nio.charset.StandardCharsets.UTF_8
+                            )
+                    );
+
+            StringBuilder name = new StringBuilder();
+
+            for (byte value : hash) {
+                name.append(String.format("%02x", value));
+            }
+
+            return cacheDirectory.resolve(name + ".jpg");
+
+        } catch (IOException | NoSuchAlgorithmException
+                 | RuntimeException exception) {
+            System.err.println(
+                    "Erro ao preparar miniatura: "
+                            + exception.getMessage()
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Gera uma miniatura JPEG a partir de um quadro do vídeo.
+     *
+     * Procura o FFmpeg na pasta tools/ffmpeg/bin, na pasta do aplicativo
+     * ou no PATH do sistema. Deve ser executado em uma thread de fundo.
+     *
+     * Retorna null se não for possível gerar a miniatura.
+     */
+    public static Path generateVideoThumbnail(Path video) {
+        if (!isVideoFile(video)) {
+            return null;
+        }
+
+        Path thumbnail = getVideoThumbnailPath(video);
+
+        if (thumbnail == null) {
+            return null;
+        }
+
+        try {
+            if (Files.isRegularFile(thumbnail)
+                    && Files.size(thumbnail) > 0) {
+                return thumbnail;
+            }
+        } catch (IOException exception) {
+            System.err.println(
+                    "Erro ao verificar miniatura: "
+                            + exception.getMessage()
+            );
+        }
+
+        Path temporaryFile = thumbnail.resolveSibling(
+                thumbnail.getFileName() + ".tmp.jpg"
+        );
+
+        Path bundledFfmpeg = getApplicationDirectory()
+                .resolve("tools")
+                .resolve("ffmpeg")
+                .resolve("bin")
+                .resolve("ffmpeg.exe");
+
+        Path rootFfmpeg = getApplicationDirectory()
+                .resolve("ffmpeg.exe");
+
+        String executable;
+
+        if (Files.isRegularFile(bundledFfmpeg)) {
+            executable = bundledFfmpeg.toString();
+        } else if (Files.isRegularFile(rootFfmpeg)) {
+            executable = rootFfmpeg.toString();
+        } else {
+            executable = "ffmpeg";
+        }
+
+        try {
+            Files.deleteIfExists(temporaryFile);
+
+            Process process = new ProcessBuilder(
+                    executable,
+                    "-hide_banner",
+                    "-loglevel", "error",
+                    "-ss", "00:00:03",
+                    "-i", video.toAbsolutePath().toString(),
+                    "-frames:v", "1",
+                    "-vf", "scale=480:-2",
+                    "-y",
+                    temporaryFile.toString()
+            )
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+
+            boolean finished = process.waitFor(25, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                process.waitFor(2, TimeUnit.SECONDS);
+                return null;
+            }
+
+            if (process.exitValue() != 0
+                    || !Files.isRegularFile(temporaryFile)
+                    || Files.size(temporaryFile) == 0) {
+                return null;
+            }
+
+            Files.move(
+                    temporaryFile,
+                    thumbnail,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+
+            return thumbnail;
+
+        } catch (IOException exception) {
+            System.err.println(
+                    "Não foi possível gerar miniatura para "
+                            + video + ": " + exception.getMessage()
+            );
+            return null;
+
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return null;
+
+        } finally {
+            try {
+                Files.deleteIfExists(temporaryFile);
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     private static String findCoverImage(Path folder) {
@@ -283,10 +492,10 @@ public class MediaScanner {
                     .findFirst()
                     .orElse(null);
 
-        } catch (IOException e) {
+        } catch (IOException exception) {
             System.err.println(
                     "Erro ao procurar capa em " + folder + ": "
-                            + e.getMessage()
+                            + exception.getMessage()
             );
             return null;
         }
@@ -340,7 +549,8 @@ public class MediaScanner {
         try (Stream<Path> paths = Files.list(baseDir)) {
             paths
                     .filter(path ->
-                            Files.isDirectory(path) || isVideoFile(path))
+                            Files.isDirectory(path)
+                                    || isSupportedFile(path, category))
                     .sorted(Comparator
                             .comparing(
                                     (Path path) -> !Files.isDirectory(path)
@@ -352,8 +562,8 @@ public class MediaScanner {
                             ))
                     .forEach(path -> {
                         boolean directory = Files.isDirectory(path);
-
                         String title = path.getFileName().toString();
+
                         Path coverFolder = directory ? path : path.getParent();
                         String coverPath = findCoverImage(coverFolder);
 
@@ -372,10 +582,10 @@ public class MediaScanner {
                         ));
                     });
 
-        } catch (IOException e) {
+        } catch (IOException exception) {
             System.err.println(
                     "Erro ao varrer o diretório " + baseDir + ": "
-                            + e.getMessage()
+                            + exception.getMessage()
             );
         }
 

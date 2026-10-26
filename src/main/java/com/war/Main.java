@@ -1,16 +1,17 @@
-package com.war;
+
+        package com.war;
 
 import com.war.navigation.MediaBrowser;
-import com.war.player.VideoPlayer;
 import com.war.style.StyleA;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.media.MediaException;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Main extends Application {
@@ -18,8 +19,6 @@ public class Main extends Application {
     private BorderPane root;
     private WindowBar windowBar;
     private MediaBrowser browser;
-    private final VideoPlayer videoPlayer = new VideoPlayer();
-    private VBox playerView;
 
     @Override
     public void start(Stage primaryStage) {
@@ -28,6 +27,7 @@ public class Main extends Application {
         primaryStage.initStyle(StageStyle.UNDECORATED);
 
         root = new BorderPane();
+
         windowBar = new WindowBar(
                 primaryStage,
                 root,
@@ -70,54 +70,42 @@ public class Main extends Application {
     }
 
     private void playVideo(Path videoPath) {
-        stopPlayer();
-
         try {
-            playerView = videoPlayer.play(
-                    videoPath,
-                    () -> {
-                        stopPlayer();
-                        browser.refreshCurrentDirectory();
-                    },
-                    finishedPath -> {
-                        MediaConfig.setWatched(
-                                MediaScanner.getMediaId(finishedPath),
-                                true
-                        );
+            if (videoPath == null || !Files.isRegularFile(videoPath)) {
+                browser.showMessage(
+                        "O arquivo de vídeo não foi encontrado."
+                );
+                return;
+            }
 
-                        stopPlayer();
-                        browser.refreshCurrentDirectory();
-                    }
-            );
+            if (!Desktop.isDesktopSupported()
+                    || !Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                browser.showMessage(
+                        "Não foi possível abrir o vídeo pelo Windows."
+                );
+                return;
+            }
 
-            root.setCenter(playerView);
-            StyleA.refresh(root);
+            Desktop.getDesktop().open(videoPath.toFile());
 
-        } catch (MediaException | IllegalArgumentException e) {
+        } catch (IOException | UnsupportedOperationException
+                 | SecurityException e) {
             System.err.println(
-                    "Não foi possível reproduzir "
+                    "Não foi possível abrir o vídeo "
                             + videoPath
                             + ": "
                             + e.getMessage()
             );
 
-            stopPlayer();
-
             browser.showMessage(
-                    "Não foi possível reproduzir este vídeo. "
-                            + "Verifique a compatibilidade do formato."
+                    "Não foi possível abrir o vídeo no aplicativo padrão do Windows."
             );
         }
     }
 
-    private void stopPlayer() {
-        videoPlayer.stop();
-        playerView = null;
-    }
-
     @Override
     public void stop() {
-        stopPlayer();
+        // A reprodução é executada externamente; não há player interno para encerrar.
     }
 
     public static void main(String[] args) {
