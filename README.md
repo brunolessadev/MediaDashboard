@@ -1,17 +1,18 @@
 # MediaDashboard
 
-Aplicativo desktop desenvolvido em Java com JavaFX para organizar e navegar por uma biblioteca local de mídias.
+Aplicativo desktop desenvolvido em Java com JavaFX para organizar, navegar e acompanhar uma biblioteca local de mídias.
 
-> **Versão de referência:** `media_dashboard_1.5`  
-> **Commit de referência:** [`069ce83379d980188e95873ec05e2f7ecab8a69b`](https://github.com/brunolessadev/MediaDashboard/commit/069ce83379d980188e95873ec05e2f7ecab8a69b)
+> **Versão de referência:** `media_dashboard_1.8`  
 
 ## Sobre o projeto
 
-O MediaDashboard oferece uma interface gráfica para navegar por pastas de mídia organizadas por categoria. O projeto está em desenvolvimento incremental, com foco em manter a organização da biblioteca, personalizar a interface e acompanhar o progresso de vídeos assistidos.
+O MediaDashboard oferece uma interface gráfica para navegar por uma biblioteca local organizada em categorias. O projeto utiliza cards para representar pastas e mídias, permite gerenciar favoritos, acompanha o estado dos vídeos assistidos e oferece temas visuais personalizáveis.
+
+A aplicação está em desenvolvimento incremental, com foco na organização do código, na experiência de navegação e na criação de uma interface desktop leve e personalizável.
 
 ## Categorias de mídia
 
-A estrutura de categorias prevista pelo aplicativo inclui:
+O aplicativo contempla as seguintes categorias:
 
 - Animes
 - Desenhos
@@ -19,23 +20,63 @@ A estrutura de categorias prevista pelo aplicativo inclui:
 - Filmes
 - Mangás
 - Livros
+- Fotos
+- Vídeos
 - Desejos
 
-As mídias são organizadas em pastas dentro do diretório `midia/`. A navegação permite entrar em pastas e retornar aos diretórios anteriores.
+As mídias são organizadas em pastas dentro do diretório `midia/`. A navegação permite entrar em subpastas, retornar aos diretórios anteriores e visualizar o conteúdo disponível em cada categoria.
 
-## Funcionalidades presentes na base de desenvolvimento
+Categorias sem conteúdo detectado podem não ser exibidas na interface.
 
-- Navegação por categorias e diretórios.
-- Exibição de mídias em cards.
-- Identificação de pastas e arquivos de vídeo.
-- Capas de mídia quando há uma imagem de capa disponível.
-- Favoritos persistidos na configuração.
-- Temas visuais selecionáveis.
-- Contagem de vídeos assistidos e progresso por pasta.
-- Reprodução de arquivos compatíveis com o mecanismo de mídia do JavaFX.
-- Persistência das configurações em `midia/config.json`.
+## Funcionalidades
 
-O suporte à reprodução depende do formato do contêiner e dos codecs reconhecidos pelo JavaFX. Alguns arquivos, incluindo determinados arquivos MKV, podem não ser reproduzidos. A compatibilidade de reprodução não é garantida para todos os formatos listados.
+### Navegação e organização
+
+- Navegação por categorias e subdiretórios.
+- Exibição de pastas em cards.
+- Exibição de capas quando há imagens disponíveis.
+- Indicadores de quantidade de vídeos e progresso por pasta.
+- Gerenciamento de favoritos com persistência das configurações.
+- Barra de navegação com caminho do diretório atual e botão para voltar.
+
+### Vídeos e episódios
+
+- Listagem de arquivos de vídeo em diretórios.
+- Identificação visual de episódios assistidos e não assistidos.
+- Indicadores coloridos de status: verde para assistidos e vermelho para não assistidos.
+- Botões para marcar ou desmarcar episódios como assistidos.
+- Atualização do progresso após alterações no estado dos episódios.
+- Abertura de vídeos pelo reprodutor padrão do Windows na categoria `Vídeos`.
+- Reprodução por meio do mecanismo configurado na aplicação nas demais categorias, conforme o fluxo utilizado.
+
+A abertura de um vídeo pela categoria `Vídeos` registra o episódio como assistido após a ação de abertura ser acionada. Isso não confirma que o reprodutor externo iniciou ou concluiu a reprodução.
+
+A compatibilidade de reprodução depende do formato do contêiner e dos codecs reconhecidos pelo mecanismo utilizado. A detecção de um arquivo não garante que ele possa ser reproduzido.
+
+### Fotos
+
+- Exibição de imagens em miniaturas.
+- Ajuste do tamanho das miniaturas por meio de um controle deslizante.
+- Visualização de imagens em tela cheia.
+- Navegação entre imagens usando os controles da interface ou as teclas direcionais.
+- Exibição do nome e da posição da imagem na coleção.
+- Tratamento de arquivos de imagem indisponíveis ou inválidos.
+
+### Livros
+
+- Organização de livros por pastas.
+- Contagem de livros nas coleções.
+- Abertura da pasta que contém o arquivo selecionado.
+
+### Interface e personalização
+
+- Temas visuais selecionáveis:
+  - Cyberpunk Neon
+  - Crunchyroll
+  - Nórdico
+- Botões de episódios com estilos diferentes conforme sua função.
+- Atualização dos estilos de acordo com o tema selecionado.
+- Interface baseada em componentes JavaFX.
 
 ## Tecnologias
 
@@ -44,25 +85,30 @@ O suporte à reprodução depende do formato do contêiner e dos codecs reconhec
   - `javafx-controls`
   - `javafx-graphics`
   - `javafx-media`
-- **Gson 2.10.1** para leitura e gravação da configuração JSON.
-- **Maven** para gerenciamento de dependências e execução do projeto.
+- **Gson 2.10.1** — leitura e gravação de configurações JSON.
+- **Maven** — gerenciamento de dependências e execução do projeto.
 
-## Estrutura geral
+## Estrutura do projeto
 
-A estrutura atual inclui classes na package `com.war`, como:
+A aplicação utiliza classes organizadas em pacotes para separar responsabilidades.
 
-- `Main`: inicialização da aplicação e integração da interface.
-- `MediaScanner`: descoberta de pastas e arquivos de mídia e cálculo de progresso.
-- `MediaConfig`: leitura e gravação de configurações, favoritos, tema e estado de assistidos.
-- `CardComponent`: criação dos cards de mídia.
-- `WindowBar`: barra superior e controles da janela.
-- `StyleA` e `StyleB`: estilos visuais da aplicação.
+Entre os componentes principais estão:
 
-A organização em subpacotes para separar navegação, lista de episódios, player e estilos faz parte da refatoração planejada. A estrutura final poderá mudar conforme essa refatoração avançar.
+- `Main` — inicialização e integração da aplicação.
+- `MediaScanner` — descoberta de pastas e arquivos, identificação de mídias e cálculo de progresso.
+- `MediaConfig` — persistência de configurações, favoritos, tema e estado dos episódios assistidos.
+- `CardComponent` — criação dos cards de mídia.
+- `WindowBar` — barra superior e controles da janela.
+- `MediaBrowser` — navegação por categorias e diretórios, visualização de fotos e abertura de mídias.
+- `EpisodeList` — criação e organização da lista de episódios.
+- `EpisodeRow` — representação de cada episódio, status e ações disponíveis.
+- `StyleA` e `StyleB` — aplicação dos temas e estilos visuais.
+
+A estrutura pode evoluir conforme novas funcionalidades sejam implementadas e as responsabilidades sejam refinadas.
 
 ## Organização da biblioteca
 
-Crie o diretório `midia/` na localização esperada pelo aplicativo e organize suas mídias nas categorias. Exemplo:
+Exemplo de organização local:
 
 ```text
 midia/
@@ -78,20 +124,30 @@ midia/
 ├── Filmes/
 ├── Mangás/
 ├── Livros/
+├── Fotos/
+├── Vídeos/
 └── Desejos/
 ```
 
-O exemplo ilustra uma organização possível; os nomes das pastas e dos arquivos podem variar. A descoberta das mídias depende da estrutura que o scanner consegue ler.
+Essa estrutura é ilustrativa. Os nomes e a organização das pastas podem variar, desde que sejam compatíveis com a lógica de descoberta implementada no `MediaScanner`.
 
-## Configuração
+As imagens podem ser utilizadas como capas ou visualizadas na categoria `Fotos`, conforme o local em que estiverem armazenadas e os formatos reconhecidos pelo scanner.
 
-O arquivo `midia/config.json` é usado para persistir preferências da aplicação, incluindo favoritos e tema. O estado dos vídeos assistidos também é armazenado pela configuração da aplicação.
+## Configuração e persistência
 
-Evite editar o arquivo enquanto o aplicativo estiver aberto. Antes de alterar ou substituir a configuração manualmente, faça uma cópia de segurança.
+O arquivo `midia/config.json` é utilizado para armazenar configurações da aplicação, incluindo favoritos, tema e estado dos vídeos assistidos.
+
+Como o diretório `midia/` contém arquivos pessoais e arquivos de mídia, ele é ignorado pelo Git. Assim, vídeos, imagens, livros, capas e demais arquivos da biblioteca não são enviados ao repositório por meio do controle de versão.
+
+**Importante:** mantenha uma cópia de segurança de `config.json` se desejar preservar seus favoritos, tema e progresso ao reinstalar ou reorganizar a biblioteca.
 
 ## Como executar
 
-É necessário ter um JDK compatível com Java 17 e Maven.
+Requisitos:
+
+- JDK compatível com Java 17.
+- Maven, instalado ou disponibilizado pela IDE.
+- Dependências Maven acessíveis para resolução do projeto.
 
 Na raiz do projeto, execute:
 
@@ -99,29 +155,31 @@ Na raiz do projeto, execute:
 mvn clean javafx:run
 ```
 
-Se a execução estiver configurada por uma IDE, importe o projeto como projeto Maven e execute a classe principal `com.war.Main` ou utilize a configuração Maven equivalente.
+Se estiver utilizando uma IDE, importe o projeto como projeto Maven e execute a classe principal `com.war.Main` ou utilize uma configuração Maven equivalente.
 
 ## Limitações conhecidas
 
-- A reprodução depende dos formatos e codecs suportados pela implementação de mídia do JavaFX.
-- Um arquivo ser detectado pelo scanner não significa que ele necessariamente será reproduzido.
-- A interface e a arquitetura estão em evolução; mudanças de organização podem ocorrer durante a refatoração.
+- A reprodução depende dos formatos e codecs suportados pelo mecanismo de mídia utilizado.
+- Arquivos detectados pelo scanner podem não ser reproduzíveis.
+- A abertura de vídeos por um reprodutor externo não confirma o início ou a conclusão da reprodução.
+- A estrutura e a interface podem sofrer alterações durante a evolução do projeto.
+- O diretório local de mídias não é versionado pelo Git.
 
-## Próximas melhorias planejadas
+## Próximas melhorias
 
-- Separar as responsabilidades atualmente concentradas em `Main.java`.
-- Implementar uma lista compacta de episódios.
-- Permitir marcar e desmarcar episódios manualmente como assistidos, mesmo quando não puderem ser reproduzidos.
-- Exibir um indicador visual para o estado de cada episódio.
-- Manter a contagem e a barra de progresso sincronizadas com os estados salvos.
-- Preservar os temas, as capas e os favoritos durante a refatoração.
+As melhorias futuras podem incluir:
 
-Esses itens são objetivos de desenvolvimento e não devem ser considerados concluídos até serem implementados e testados.
+- Registro da data e hora da última abertura de cada vídeo.
+- Destaque visual do último episódio aberto.
+- Refinamento da organização e separação das responsabilidades do código.
+- Melhorias na compatibilidade de reprodução de formatos adicionais.
+- Preparação de uma distribuição portátil com as dependências necessárias, sem exigir instalações adicionais no computador de destino.
 
-## Histórico
+Os itens acima são propostas futuras e não devem ser considerados concluídos até sua implementação e validação.
 
-O desenvolvimento segue por commits incrementais. Esta descrição toma como referência o commit [`media_dashboard_1.5`](https://github.com/brunolessadev/MediaDashboard/commit/069ce83379d980188e95873ec05e2f7ecab8a69b). A refatoração e as melhorias descritas como planejadas devem ser registradas em commits posteriores após implementação e validação.
+## Histórico de desenvolvimento
 
-## Repositório
+O projeto evolui por meio de commits incrementais. Esta documentação mantém como referência a versão `media_dashboard_1.5` e o commit inicial indicado no cabeçalho.
 
-[github.com/brunolessadev/MediaDashboard](https://github.com/brunolessadev/MediaDashboard)
+Alterações posteriores devem ser registradas em novos commits após implementação e validação.
+

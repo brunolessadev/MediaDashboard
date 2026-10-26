@@ -1,20 +1,39 @@
-### Mídia e Arquivos Grandes ###
 
-# Mantém a pasta midia e suas subpastas no Git
-!midia/
-!midia/**/
+### Biblioteca de mídia do MediaDashboard ###
 
-# Ignora os arquivos dentro das pastas de mídia
-midia/**/*
+# Ignora tudo dentro de midia por padrão
+/midia/*
 
-# Mantém arquivos .gitkeep para preservar pastas vazias
-!midia/**/.gitkeep
+# Mantém as pastas padrão das categorias
+!/midia/Animes/
+/!midia/Desenhos/
+!/midia/Séries/
+!/midia/Filmes/
+!/midia/Mangás/
+!/midia/Livros/
+!/midia/Fotos/
+!/midia/Vídeos/
+!/midia/Desejos/
 
+# Mantém as pastas, mas ignora os arquivos de teste
+/midia/Animes/*
+!/midia/Animes/*/
+/midia/Desenhos/*
+!/midia/Desenhos/*/
+/midia/Séries/*
+!/midia/Séries/*/
+/midia/Filmes/*
+!/midia/Filmes/*/
+/midia/Mangás/*
+!/midia/Mangás/*/
+/midia/Livros/*
+!/midia/Livros/*/
+/midia/Fotos/*
+!/midia/Fotos/*/
+/midia/Vídeos/*
+!/midia/Vídeos/*/
+/midia/Desejos/*
+!/midia/Desejos/*/
 
-### Mídia e Arquivos Grandes ###
-
-# Ignora todo o conteúdo da pasta midia, inclusive imagens e subpastas
-/midia/
-*.mkv
-*.mp4
-*.avi
+# Ignora os arquivos dentro das subpastas, inclusive imagens e vídeos
+/midia/**/*.*
